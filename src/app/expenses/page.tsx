@@ -1,0 +1,505 @@
+﻿"use client"
+
+import {
+  MoreHorizontal,
+  Plus,
+  Receipt,
+  Search,
+} from "lucide-react"
+import { useMemo, useState } from "react"
+
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
+import {
+  createExpense,
+  deleteExpense,
+  getExpenses,
+} from "@/lib/api/expenses"
+import type { ExpenseCategory } from "@/lib/types/expense"
+
+const categoryLabels: Record<ExpenseCategory, string> = {
+  supplies: "Supplies",
+  utilities: "Utilities",
+  maintenance: "Maintenance",
+  salary: "Salary",
+  other: "Other",
+}
+
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState(() => getExpenses())
+  const [search, setSearch] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+
+  const [category, setCategory] = useState<ExpenseCategory>("supplies")
+  const [description, setDescription] = useState("")
+  const [amount, setAmount] = useState("")
+  const [recordedBy, setRecordedBy] = useState("Manager")
+  const [error, setError] = useState("")
+
+  const filteredExpenses = useMemo(() => {
+    const query = search.trim().toLowerCase()
+
+    if (!query) {
+      return expenses
+    }
+
+    return expenses.filter((expense) =>
+      [
+        expense.id,
+        categoryLabels[expense.category],
+        expense.description,
+        expense.recordedBy,
+        expense.amount,
+      ].some((value) =>
+        String(value).toLowerCase().includes(query)
+      )
+    )
+  }, [expenses, search])
+
+  const totalExpenses = useMemo(
+    () =>
+      expenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0
+      ),
+    [expenses]
+  )
+
+  function handleDeleteExpense() {
+    if (!deleteTarget) {
+      return
+    }
+
+    deleteExpense(deleteTarget)
+    setExpenses(getExpenses())
+    setDeleteTarget(null)
+  }
+
+  function resetForm() {
+    setCategory("supplies")
+    setDescription("")
+    setAmount("")
+    setRecordedBy("Manager")
+    setError("")
+  }
+
+  function handleCreateExpense() {
+    setError("")
+
+    const numericAmount = Number(amount)
+
+    if (!description.trim()) {
+      setError("Description is required.")
+      return
+    }
+
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setError("Amount must be greater than zero.")
+      return
+    }
+
+    try {
+      createExpense({
+        category,
+        description: description.trim(),
+        amount: numericAmount,
+        recordedBy: recordedBy.trim() || "Manager",
+      })
+
+      setExpenses(getExpenses())
+      resetForm()
+      setDialogOpen(false)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not create expense."
+      )
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 lg:p-6">
+
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Expenses
+          </h1>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Record and track business expenses.
+          </p>
+        </div>
+
+        <Button
+          className="gap-2 bg-blue-600 hover:bg-blue-700"
+          onClick={() => {
+            setError("")
+            setDialogOpen(true)
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Add Expense
+        </Button>
+
+      </div>
+
+      <Card>
+        <CardContent className="p-5">
+
+          <div className="flex items-center gap-4">
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+              <Receipt className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Total Expenses Today
+              </p>
+
+              <p className="mt-1 text-2xl font-semibold">
+                {totalExpenses.toFixed(2)} LYD
+              </p>
+            </div>
+
+          </div>
+
+        </CardContent>
+      </Card>
+
+      <Card>
+
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+          <CardTitle className="text-base">
+            Expense History
+          </CardTitle>
+
+          <div className="relative w-full sm:w-80">
+
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+            <Input
+              placeholder="Search expenses..."
+              className="pl-9"
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+            />
+
+          </div>
+
+        </CardHeader>
+
+        <CardContent>
+
+          {filteredExpenses.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="font-medium">
+                No expenses found
+              </p>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add an expense to begin tracking business costs.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+
+              <table className="w-full text-sm">
+
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="pb-3 font-medium">Expense</th>
+                    <th className="pb-3 font-medium">Category</th>
+                    <th className="pb-3 font-medium">Description</th>
+                    <th className="pb-3 font-medium">Amount</th>
+                    <th className="pb-3 font-medium">Recorded By</th>
+                    <th className="pb-3"></th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y">
+
+                  {filteredExpenses.map((expense) => (
+                    <tr key={expense.id}>
+
+                      <td className="py-4">
+                        <p className="font-medium">
+                          {expense.id}
+                        </p>
+
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(expense.createdAt).toLocaleTimeString(
+                            [],
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </p>
+                      </td>
+
+                      <td className="py-4">
+                        <Badge variant="outline">
+                          {categoryLabels[expense.category]}
+                        </Badge>
+                      </td>
+
+                      <td className="py-4">
+                        {expense.description}
+                      </td>
+
+                      <td className="py-4 font-semibold">
+                        {expense.amount.toFixed(2)} LYD
+                      </td>
+
+                      <td className="py-4">
+                        {expense.recordedBy}
+                      </td>
+
+                      <td className="py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Delete expense"
+                          onClick={() => setDeleteTarget(expense.id)}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </td>
+
+                    </tr>
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+          )}
+
+        </CardContent>
+
+      </Card>
+
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+
+          if (!open) {
+            resetForm()
+          }
+        }}
+      >
+        <DialogContent>
+
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+
+            <DialogDescription>
+              Record a business expense for the shop.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-category">
+                Category
+              </Label>
+
+              <Select
+                value={category}
+                onValueChange={(value) =>
+                  setCategory(value as ExpenseCategory)
+                }
+              >
+                <SelectTrigger
+                  id="expense-category"
+                  className="w-full"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="supplies">
+                    Supplies
+                  </SelectItem>
+
+                  <SelectItem value="utilities">
+                    Utilities
+                  </SelectItem>
+
+                  <SelectItem value="maintenance">
+                    Maintenance
+                  </SelectItem>
+
+                  <SelectItem value="salary">
+                    Salary
+                  </SelectItem>
+
+                  <SelectItem value="other">
+                    Other
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-description">
+                Description
+              </Label>
+
+              <Textarea
+                id="expense-description"
+                placeholder="What was this expense for?"
+                value={description}
+                onChange={(event) =>
+                  setDescription(event.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-amount">
+                Amount (LYD)
+              </Label>
+
+              <Input
+                id="expense-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={amount}
+                onChange={(event) =>
+                  setAmount(event.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-recorded-by">
+                Recorded By
+              </Label>
+
+              <Input
+                id="expense-recorded-by"
+                placeholder="Manager"
+                value={recordedBy}
+                onChange={(event) =>
+                  setRecordedBy(event.target.value)
+                }
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600">
+                {error}
+              </p>
+            )}
+
+          </div>
+
+          <DialogFooter>
+
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleCreateExpense}
+            >
+              Save Expense
+            </Button>
+
+          </DialogFooter>
+
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete expense?
+            </AlertDialogTitle>
+
+            <AlertDialogDescription>
+              This expense will be permanently removed from the current session.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleDeleteExpense}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+    </div>
+  )
+}
+
+
