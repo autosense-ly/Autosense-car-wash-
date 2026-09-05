@@ -4,6 +4,7 @@ import * as React from "react"
 import { Sidebar } from "@/components/navigation/sidebar"
 import { Topbar } from "@/components/navigation/topbar"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "./theme-provider"
 
 export function AppShell({
@@ -40,6 +41,7 @@ export function AppShell({
           </div>
         </div>
       </div>
+      <Toaster />
     </ThemeProvider>
   )
 }
