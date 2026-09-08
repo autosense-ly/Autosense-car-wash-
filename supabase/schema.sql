@@ -65,12 +65,16 @@ create table if not exists customers (
   created_at timestamptz not null default now()
 );
 
+-- Updated: make/model split into separate columns, year added, to match
+-- Duad's original design exactly (was a single car_model field before).
 create table if not exists vehicles (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references businesses(id) on delete cascade,
   customer_id uuid references customers(id) on delete set null,
   plate_number text not null,
-  car_model text,
+  make text,
+  model text,
+  year int,
   car_color text,
   created_at timestamptz not null default now()
 );
@@ -171,10 +175,6 @@ create trigger trg_log_job_status_change
 after insert or update of status on jobs
 for each row execute function log_job_status_change();
 
--- security_invoker = true is required on every view below. Without it,
--- views run with the CREATOR's permissions and silently bypass RLS,
--- leaking every business's data to any logged-in user. Real bug caught
--- by Supabase's advisor during setup — do not remove this.
 create or replace view job_duration_stats
 with (security_invoker = true) as
 select
@@ -183,7 +183,6 @@ select
   min(changed_at) filter (where status in ('ready', 'completed')) as finished_at
 from job_status_history
 group by job_id;
--- avg service time: select avg(finished_at - started_at) from job_duration_stats where finished_at is not null;
 
 create or replace view vehicle_visit_stats
 with (security_invoker = true) as
@@ -368,11 +367,6 @@ create policy "manager_permissions_owner_manage" on manager_permissions for all
 create policy "manager_permissions_self_select" on manager_permissions for select
   using (user_id = auth.uid());
 
--- auth_business_id/auth_role/auth_perm run INSIDE every RLS policy above.
--- Both anon and authenticated need EXECUTE — revoking anon's access here
--- doesn't hide data, it makes every anonymous query error with
--- "permission denied" instead of cleanly returning zero rows. Learned
--- this the hard way during connection testing.
 revoke execute on function auth_business_id() from public;
 revoke execute on function auth_role() from public;
 revoke execute on function auth_perm(text) from public;
@@ -380,11 +374,8 @@ grant execute on function auth_business_id() to anon, authenticated;
 grant execute on function auth_role() to anon, authenticated;
 grant execute on function auth_perm(text) to anon, authenticated;
 
--- Trigger-only, no legitimate reason for anyone to call it directly.
 revoke execute on function log_job_status_change() from public;
 
--- Sign-up flow: user calls supabase.auth.signUp() first (becomes
--- authenticated), then calls these. No anonymous use case.
 revoke execute on function create_owner_profile(text, text, text, text) from public;
 revoke execute on function join_business_as_manager(uuid, text, text) from public;
 grant execute on function create_owner_profile(text, text, text, text) to authenticated;
