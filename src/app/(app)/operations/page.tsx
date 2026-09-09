@@ -7,10 +7,24 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
 
 type JobStatus = "waiting" | "in_progress" | "ready" | "completed" | "cancelled"
+type Method = "cash" | "bank_transfer"
+type PaymentStatus = "paid" | "partial" | "unpaid"
+
+type Payment = {
+  id: string
+  job_id: string
+  amount: number | string
+}
 
 type Job = {
   id: string
@@ -18,9 +32,15 @@ type Job = {
   car_model: string | null
   customer_name: string | null
   status: JobStatus
+  total: number | string
   created_at: string
   job_services: { service_name: string }[] | null
   assigned_worker: { name: string } | null
+}
+
+function toNumber(value: number | string | null | undefined): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
 }
 
 function formatStatus(status: JobStatus) {
@@ -39,6 +59,12 @@ function getStatusClass(status: JobStatus) {
   if (status === "completed") return "bg-muted text-muted-foreground"
   if (status === "cancelled") return "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
   return "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+}
+
+function getPaymentBadgeClass(status: PaymentStatus) {
+  if (status === "paid") return "bg-emerald-50 text-emerald-700 border-emerald-200"
+  if (status === "partial") return "bg-amber-50 text-amber-700 border-amber-200"
+  return "bg-red-50 text-red-700 border-red-200"
 }
 
 function getNextStatus(status: JobStatus): JobStatus | null {
@@ -61,28 +87,49 @@ function getNextActionLabel(status: JobStatus) {
 
 export default function OperationsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [collectingId, setCollectingId] = useState<string | null>(null)
 
-  async function loadJobs() {
+  async function loadData() {
     setLoading(true)
     const supabase = createClient()
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("*, job_services(service_name), assigned_worker:workers(name)")
-      .order("created_at", { ascending: false })
 
-    if (error) {
-      toast.error("Couldn't load jobs: " + error.message)
+    const [{ data: jobData, error: jobError }, { data: paymentData }] = await Promise.all([
+      supabase
+        .from("jobs")
+        .select("*, job_services(service_name), assigned_worker:workers(name)")
+        .order("created_at", { ascending: false }),
+      supabase.from("payments").select("id, job_id, amount"),
+    ])
+
+    if (jobError) {
+      toast.error("Couldn't load jobs: " + jobError.message)
     } else {
-      setJobs((data as unknown as Job[]) ?? [])
+      setJobs((jobData as unknown as Job[]) ?? [])
     }
+    setPayments((paymentData as Payment[]) ?? [])
     setLoading(false)
   }
 
   useEffect(() => {
-    loadJobs()
+    loadData()
   }, [])
+
+  function paidAmountFor(jobId: string) {
+    return payments
+      .filter((p) => p.job_id === jobId)
+      .reduce((sum, p) => sum + toNumber(p.amount), 0)
+  }
+
+  function paymentStatusFor(job: Job): PaymentStatus {
+    const paid = paidAmountFor(job.id)
+    const total = toNumber(job.total)
+    if (paid <= 0) return "unpaid"
+    if (paid < total) return "partial"
+    return "paid"
+  }
 
   const filteredJobs = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -124,6 +171,50 @@ export default function OperationsPage() {
     setJobs((prev) =>
       prev.map((j) => (j.id === job.id ? { ...j, status: nextStatus } : j))
     )
+  }
+
+  async function collectPayment(job: Job, method: Method) {
+    setCollectingId(job.id)
+    const supabase = createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      toast.error("Not logged in")
+      setCollectingId(null)
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from("app_users")
+      .select("business_id")
+      .eq("id", user.id)
+      .single()
+
+    if (!profile) {
+      toast.error("Couldn't find your business")
+      setCollectingId(null)
+      return
+    }
+
+    const remaining = toNumber(job.total) - paidAmountFor(job.id)
+
+    const { error } = await supabase.from("payments").insert({
+      business_id: profile.business_id,
+      job_id: job.id,
+      amount: remaining,
+      method,
+      collected_by: user.id,
+    })
+
+    setCollectingId(null)
+
+    if (error) {
+      toast.error("Couldn't record payment: " + error.message)
+      return
+    }
+
+    toast.success(`Marked as paid via ${method === "cash" ? "Cash" : "Bank Transfer"}`)
+    loadData()
   }
 
   return (
@@ -208,6 +299,7 @@ export default function OperationsPage() {
               const nextStatus = getNextStatus(job.status)
               const actionLabel = getNextActionLabel(job.status)
               const shortId = job.id.slice(0, 8)
+              const payStatus = paymentStatusFor(job)
 
               return (
                 <Card key={job.id} className="transition-shadow hover:shadow-sm">
@@ -215,7 +307,7 @@ export default function OperationsPage() {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                       <Link
                         href={`/jobs/${job.id}`}
-                        className="flex items-center gap-4 lg:w-[300px]"
+                        className="flex items-center gap-4 lg:w-[280px]"
                       >
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                           <Car className="h-5 w-5" />
@@ -247,12 +339,18 @@ export default function OperationsPage() {
                               minute: "2-digit",
                             })}
                           </span>
+                          <span>{toNumber(job.total).toFixed(2)} LYD</span>
                         </div>
                       </div>
 
-                      <Badge className={`w-fit border-0 ${getStatusClass(job.status)}`}>
-                        {formatStatus(job.status)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={`w-fit border-0 ${getStatusClass(job.status)}`}>
+                          {formatStatus(job.status)}
+                        </Badge>
+                        <Badge variant="outline" className={`w-fit ${getPaymentBadgeClass(payStatus)}`}>
+                          {payStatus === "paid" ? "Paid" : payStatus === "partial" ? "Partial" : "Unpaid"}
+                        </Badge>
+                      </div>
 
                       <div className="flex gap-2">
                         {nextStatus && actionLabel && (
@@ -260,6 +358,29 @@ export default function OperationsPage() {
                             {actionLabel}
                           </Button>
                         )}
+
+                        {payStatus !== "paid" && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                disabled={collectingId === job.id}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                Mark Paid
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => collectPayment(job, "cash")}>
+                                Cash
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => collectPayment(job, "bank_transfer")}>
+                                Bank Transfer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+
                         <Link href={`/jobs/${job.id}`}>
                           <Button variant="outline" size="sm">
                             Open
