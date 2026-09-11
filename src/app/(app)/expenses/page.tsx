@@ -1,12 +1,8 @@
-﻿"use client"
+"use client"
 
-import {
-  MoreHorizontal,
-  Plus,
-  Receipt,
-  Search,
-} from "lucide-react"
-import { useMemo, useState } from "react"
+import { MoreHorizontal, Plus, Receipt, Search } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -44,13 +40,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { createClient } from "@/lib/supabase/client"
 
-import {
-  createExpense,
-  deleteExpense,
-  getExpenses,
-} from "@/lib/api/expenses"
-import type { ExpenseCategory } from "@/lib/types/expense"
+type ExpenseCategory =
+  | "supplies"
+  | "utilities"
+  | "maintenance"
+  | "salary"
+  | "other"
+
+type ExpenseRow = {
+  id: string
+  business_id: string
+  category: ExpenseCategory
+  name: string
+  unit: string | null
+  quantity: number | string
+  amount: number | string
+  expense_date: string
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
 
 const categoryLabels: Record<ExpenseCategory, string> = {
   supplies: "Supplies",
@@ -60,17 +71,95 @@ const categoryLabels: Record<ExpenseCategory, string> = {
   other: "Other",
 }
 
+function toNumber(value: number | string | null | undefined) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+function getTodayRange() {
+  const now = new Date()
+
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  }
+}
+
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState(() => getExpenses())
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
 
-  const [category, setCategory] = useState<ExpenseCategory>("supplies")
+  const [category, setCategory] =
+    useState<ExpenseCategory>("supplies")
   const [description, setDescription] = useState("")
   const [amount, setAmount] = useState("")
   const [recordedBy, setRecordedBy] = useState("Manager")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  async function loadExpenses() {
+    setLoading(true)
+
+    try {
+      const supabase = createClient()
+
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser()
+
+      if (authError || !authData.user) {
+        throw new Error("You are not logged in")
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("app_users")
+        .select("business_id, name")
+        .eq("id", authData.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        throw new Error("Couldn't find your business profile")
+      }
+
+      setRecordedBy(profile.name || "Manager")
+
+      const { data, error: expensesError } = await supabase
+        .from("expenses")
+        .select(
+          "id, business_id, category, name, unit, quantity, amount, expense_date, notes, created_by, created_at",
+        )
+        .eq("business_id", profile.business_id)
+        .order("created_at", { ascending: false })
+
+      if (expensesError) {
+        throw new Error(
+          `Couldn't load expenses: ${expensesError.message}`,
+        )
+      }
+
+      setExpenses((data as ExpenseRow[]) ?? [])
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Couldn't load expenses",
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadExpenses()
+  }, [])
 
   const filteredExpenses = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -83,43 +172,91 @@ export default function ExpensesPage() {
       [
         expense.id,
         categoryLabels[expense.category],
-        expense.description,
-        expense.recordedBy,
+        expense.name,
+        expense.notes,
         expense.amount,
+        expense.created_by,
       ].some((value) =>
-        String(value).toLowerCase().includes(query)
-      )
+        String(value ?? "").toLowerCase().includes(query),
+      ),
     )
   }, [expenses, search])
 
-  const totalExpenses = useMemo(
-    () =>
-      expenses.reduce(
-        (sum, expense) => sum + expense.amount,
-        0
-      ),
-    [expenses]
-  )
+  const totalExpensesToday = useMemo(() => {
+    const { start, end } = getTodayRange()
+    const startTime = new Date(start).getTime()
+    const endTime = new Date(end).getTime()
 
-  function handleDeleteExpense() {
+    return expenses.reduce((sum, expense) => {
+      const expenseTime = new Date(expense.expense_date).getTime()
+
+      if (expenseTime >= startTime && expenseTime < endTime) {
+        return sum + toNumber(expense.amount)
+      }
+
+      return sum
+    }, 0)
+  }, [expenses])
+
+  async function handleDeleteExpense() {
     if (!deleteTarget) {
       return
     }
 
-    deleteExpense(deleteTarget)
-    setExpenses(getExpenses())
-    setDeleteTarget(null)
+    try {
+      const supabase = createClient()
+
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser()
+
+      if (authError || !authData.user) {
+        throw new Error("You are not logged in")
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("app_users")
+        .select("business_id")
+        .eq("id", authData.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        throw new Error("Couldn't find your business profile")
+      }
+
+      const { error: deleteError } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", deleteTarget)
+        .eq("business_id", profile.business_id)
+
+      if (deleteError) {
+        throw new Error(
+          `Couldn't delete expense: ${deleteError.message}`,
+        )
+      }
+
+      setExpenses((current) =>
+        current.filter((expense) => expense.id !== deleteTarget),
+      )
+      setDeleteTarget(null)
+      toast.success("Expense deleted")
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Couldn't delete expense",
+      )
+    }
   }
 
   function resetForm() {
     setCategory("supplies")
     setDescription("")
     setAmount("")
-    setRecordedBy("Manager")
     setError("")
   }
 
-  function handleCreateExpense() {
+  async function handleCreateExpense() {
     setError("")
 
     const numericAmount = Number(amount)
@@ -134,36 +271,81 @@ export default function ExpensesPage() {
       return
     }
 
-    try {
-      createExpense({
-        category,
-        description: description.trim(),
-        amount: numericAmount,
-        recordedBy: recordedBy.trim() || "Manager",
-      })
+    setSaving(true)
 
-      setExpenses(getExpenses())
+    try {
+      const supabase = createClient()
+
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser()
+
+      if (authError || !authData.user) {
+        throw new Error("You are not logged in")
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("app_users")
+        .select("business_id, name")
+        .eq("id", authData.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        throw new Error("Couldn't find your business profile")
+      }
+
+      const { data, error: insertError } = await supabase
+        .from("expenses")
+        .insert({
+          business_id: profile.business_id,
+          category,
+          name: description.trim(),
+          unit: null,
+          quantity: 1,
+          amount: numericAmount,
+          expense_date: new Date().toISOString(),
+          notes: null,
+          created_by: authData.user.id,
+        })
+        .select(
+          "id, business_id, category, name, unit, quantity, amount, expense_date, notes, created_by, created_at",
+        )
+        .single()
+
+      if (insertError || !data) {
+        throw new Error(
+          insertError
+            ? `Couldn't create expense: ${insertError.message}`
+            : "Couldn't create expense",
+        )
+      }
+
+      setExpenses((current) => [
+        data as ExpenseRow,
+        ...current,
+      ])
+
+      setRecordedBy(profile.name || "Manager")
       resetForm()
       setDialogOpen(false)
+      toast.success("Expense added")
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not create expense."
+          : "Could not create expense.",
       )
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 lg:p-6">
-
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             Expenses
           </h1>
-
           <p className="mt-1 text-sm text-muted-foreground">
             Record and track business expenses.
           </p>
@@ -179,14 +361,11 @@ export default function ExpensesPage() {
           <Plus className="h-4 w-4" />
           Add Expense
         </Button>
-
       </div>
 
       <Card>
         <CardContent className="p-5">
-
           <div className="flex items-center gap-4">
-
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <Receipt className="h-5 w-5" />
             </div>
@@ -197,25 +376,20 @@ export default function ExpensesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-semibold">
-                {totalExpenses.toFixed(2)} LYD
+                {totalExpensesToday.toFixed(2)} LYD
               </p>
             </div>
-
           </div>
-
         </CardContent>
       </Card>
 
       <Card>
-
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
           <CardTitle className="text-base">
             Expense History
           </CardTitle>
 
           <div className="relative w-full sm:w-80">
-
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
             <Input
@@ -226,14 +400,15 @@ export default function ExpensesPage() {
                 setSearch(event.target.value)
               }
             />
-
           </div>
-
         </CardHeader>
 
         <CardContent>
-
-          {filteredExpenses.length === 0 ? (
+          {loading ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Loading expenses...
+            </div>
+          ) : filteredExpenses.length === 0 ? (
             <div className="py-12 text-center">
               <p className="font-medium">
                 No expenses found
@@ -245,38 +420,43 @@ export default function ExpensesPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-
               <table className="w-full text-sm">
-
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="pb-3 font-medium">Expense</th>
-                    <th className="pb-3 font-medium">Category</th>
-                    <th className="pb-3 font-medium">Description</th>
-                    <th className="pb-3 font-medium">Amount</th>
-                    <th className="pb-3 font-medium">Recorded By</th>
-                    <th className="pb-3"></th>
+                    <th className="pb-3 font-medium">
+                      Expense
+                    </th>
+                    <th className="pb-3 font-medium">
+                      Category
+                    </th>
+                    <th className="pb-3 font-medium">
+                      Description
+                    </th>
+                    <th className="pb-3 font-medium">
+                      Amount
+                    </th>
+                    <th className="pb-3 font-medium">
+                      Recorded By
+                    </th>
+                    <th className="pb-3" />
                   </tr>
                 </thead>
 
                 <tbody className="divide-y">
-
                   {filteredExpenses.map((expense) => (
                     <tr key={expense.id}>
-
                       <td className="py-4">
                         <p className="font-medium">
-                          {expense.id}
+                          #{expense.id.slice(0, 8)}
                         </p>
 
                         <p className="text-xs text-muted-foreground">
-                          {new Date(expense.createdAt).toLocaleTimeString(
-                            [],
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
+                          {new Date(
+                            expense.created_at,
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </td>
 
@@ -287,15 +467,20 @@ export default function ExpensesPage() {
                       </td>
 
                       <td className="py-4">
-                        {expense.description}
+                        {expense.name}
                       </td>
 
                       <td className="py-4 font-semibold">
-                        {expense.amount.toFixed(2)} LYD
+                        {toNumber(expense.amount).toFixed(2)} LYD
                       </td>
 
                       <td className="py-4">
-                        {expense.recordedBy}
+                        {expense.created_by === null
+                          ? "—"
+                          : expense.created_by ===
+                              expense.business_id
+                            ? recordedBy
+                            : recordedBy}
                       </td>
 
                       <td className="py-4 text-right">
@@ -303,24 +488,20 @@ export default function ExpensesPage() {
                           variant="ghost"
                           size="icon"
                           aria-label="Delete expense"
-                          onClick={() => setDeleteTarget(expense.id)}
+                          onClick={() =>
+                            setDeleteTarget(expense.id)
+                          }
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </td>
-
                     </tr>
                   ))}
-
                 </tbody>
-
               </table>
-
             </div>
           )}
-
         </CardContent>
-
       </Card>
 
       <Dialog
@@ -334,7 +515,6 @@ export default function ExpensesPage() {
         }}
       >
         <DialogContent>
-
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
 
@@ -344,7 +524,6 @@ export default function ExpensesPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-
             <div className="space-y-2">
               <Label htmlFor="expense-category">
                 Category
@@ -367,19 +546,15 @@ export default function ExpensesPage() {
                   <SelectItem value="supplies">
                     Supplies
                   </SelectItem>
-
                   <SelectItem value="utilities">
                     Utilities
                   </SelectItem>
-
                   <SelectItem value="maintenance">
                     Maintenance
                   </SelectItem>
-
                   <SelectItem value="salary">
                     Salary
                   </SelectItem>
-
                   <SelectItem value="other">
                     Other
                   </SelectItem>
@@ -427,11 +602,8 @@ export default function ExpensesPage() {
 
               <Input
                 id="expense-recorded-by"
-                placeholder="Manager"
                 value={recordedBy}
-                onChange={(event) =>
-                  setRecordedBy(event.target.value)
-                }
+                readOnly
               />
             </div>
 
@@ -440,14 +612,13 @@ export default function ExpensesPage() {
                 {error}
               </p>
             )}
-
           </div>
 
           <DialogFooter>
-
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
+              disabled={saving}
             >
               Cancel
             </Button>
@@ -455,12 +626,11 @@ export default function ExpensesPage() {
             <Button
               className="bg-blue-600 hover:bg-blue-700"
               onClick={handleCreateExpense}
+              disabled={saving}
             >
-              Save Expense
+              {saving ? "Saving..." : "Save Expense"}
             </Button>
-
           </DialogFooter>
-
         </DialogContent>
       </Dialog>
 
@@ -479,7 +649,8 @@ export default function ExpensesPage() {
             </AlertDialogTitle>
 
             <AlertDialogDescription>
-              This expense will be permanently removed from the current session.
+              This expense will be permanently removed from
+              the business records.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -497,9 +668,6 @@ export default function ExpensesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   )
 }
-
-
