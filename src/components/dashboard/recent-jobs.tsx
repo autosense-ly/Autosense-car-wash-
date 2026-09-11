@@ -1,4 +1,5 @@
-﻿import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -6,52 +7,43 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-const jobs = [
-  {
-    id: "#104",
-    vehicle: "Toyota Camry",
-    plate: "ABC-123",
-    service: "Full Wash",
-    worker: "Mohammed",
-    status: "In Progress",
-    time: "10:24",
-  },
-  {
-    id: "#103",
-    vehicle: "BMW 5 Series",
-    plate: "TRP-442",
-    service: "Interior",
-    worker: "Ahmed",
-    status: "Ready",
-    time: "10:05",
-  },
-  {
-    id: "#102",
-    vehicle: "Toyota Corolla",
-    plate: "LY-881",
-    service: "Exterior",
-    worker: "Ali",
-    status: "Waiting",
-    time: "09:48",
-  },
-  {
-    id: "#101",
-    vehicle: "Mercedes C-Class",
-    plate: "TR-209",
-    service: "Full Wash + Wax",
-    worker: "Hassan",
-    status: "Completed",
-    time: "09:31",
-  },
-]
+export type RecentJob = {
+  id: string
+  vehicle: string
+  plate: string
+  service: string
+  worker: string
+  status:
+    | "waiting"
+    | "in_progress"
+    | "ready"
+    | "completed"
+    | "cancelled"
+  time: string
+}
 
-function getStatusVariant(status: string) {
-  if (status === "Ready") return "default"
-  if (status === "Completed") return "secondary"
+function formatStatus(status: RecentJob["status"]) {
+  switch (status) {
+    case "waiting":
+      return "Waiting"
+    case "in_progress":
+      return "In Progress"
+    case "ready":
+      return "Ready"
+    case "completed":
+      return "Completed"
+    case "cancelled":
+      return "Cancelled"
+  }
+}
+
+function getStatusVariant(status: RecentJob["status"]) {
+  if (status === "ready") return "default"
+  if (status === "completed") return "secondary"
   return "outline"
 }
 
-export function RecentJobs() {
+export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -65,48 +57,62 @@ export function RecentJobs() {
           </p>
         </div>
 
-        <button className="text-xs font-medium text-blue-600 hover:underline">
+        <Link
+          href="/operations"
+          className="text-xs font-medium text-blue-600 hover:underline"
+        >
           View all
-        </button>
+        </Link>
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="divide-y">
-          {jobs.map((job) => (
-            <div
-              key={job.id}
-              className="flex items-center gap-4 px-6 py-4"
-            >
-              <div className="hidden w-12 text-xs font-medium text-muted-foreground sm:block">
-                {job.id}
+        {jobs.length === 0 ? (
+          <div className="px-6 py-10 text-center">
+            <p className="text-sm font-medium">
+              No jobs today
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              New jobs will appear here as they are created.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex items-center gap-4 px-6 py-4"
+              >
+                <div className="hidden w-12 text-xs font-medium text-muted-foreground sm:block">
+                  {job.id}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {job.vehicle}
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {job.plate} - {job.service}
+                  </p>
+                </div>
+
+                <div className="hidden text-right md:block">
+                  <p className="text-xs font-medium">
+                    {job.worker}
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {job.time}
+                  </p>
+                </div>
+
+                <Badge variant={getStatusVariant(job.status) as any}>
+                  {formatStatus(job.status)}
+                </Badge>
               </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
-                  {job.vehicle}
-                </p>
-
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {job.plate} - {job.service}
-                </p>
-              </div>
-
-              <div className="hidden text-right md:block">
-                <p className="text-xs font-medium">
-                  {job.worker}
-                </p>
-
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {job.time}
-                </p>
-              </div>
-
-              <Badge variant={getStatusVariant(job.status) as any}>
-                {job.status}
-              </Badge>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

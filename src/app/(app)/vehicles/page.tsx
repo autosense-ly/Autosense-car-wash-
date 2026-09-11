@@ -342,7 +342,7 @@ export default function VehiclesPage() {
               <Label>Owner</Label>
               <Select
                 value={form.customer_id}
-                onValueChange={(v) => setForm((f) => ({ ...f, customer_id: v }))}
+                onValueChange={(v) => setForm((f) => ({ ...f, customer_id: v ?? "" }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="No owner set" />

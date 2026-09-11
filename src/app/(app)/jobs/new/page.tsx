@@ -110,8 +110,8 @@ export default function NewJobPage() {
     load()
   }, [])
 
-  function handleSelectExistingVehicle(vehicleId: string) {
-    setExistingVehicleId(vehicleId)
+  function handleSelectExistingVehicle(vehicleId: string | null) {
+    setExistingVehicleId(vehicleId ?? "")
     const vehicle = vehicles.find((v) => v.id === vehicleId)
     if (!vehicle) return
 
@@ -426,7 +426,7 @@ export default function NewJobPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Worker</Label>
-              <Select value={workerId} onValueChange={setWorkerId}>
+              <Select value={workerId} onValueChange={(value) => setWorkerId(value ?? "")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>

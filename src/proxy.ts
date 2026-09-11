@@ -90,7 +90,7 @@ export async function proxy(request: NextRequest) {
 
         console.log('[proxy] permKey=', permKey, 'perms=', perms, 'permsError=', permsError?.message)
 
-        const allowed = perms ? (perms as Record<string, boolean>)[permKey] : false
+        const allowed = perms ? (perms as unknown as Record<string, boolean>)[permKey] : false
 
         if (!allowed && path !== '/operations') {
           console.log('[proxy] blocking', path, '- allowed was:', allowed)
