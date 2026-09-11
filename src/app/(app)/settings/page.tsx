@@ -44,6 +44,7 @@ const sections = [
     title: "Payments",
     description: "Configure payment methods and who can collect payments.",
     icon: CreditCard,
+    href: "/payments",
   },
   {
     title: "Notifications",
