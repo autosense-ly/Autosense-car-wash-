@@ -38,6 +38,7 @@ const sections = [
     title: "Employees",
     description: "Manage employee roles, access and payment arrangements.",
     icon: Users,
+    href: "/employees",
   },
   {
     title: "Payments",
