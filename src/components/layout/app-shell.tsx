@@ -16,7 +16,7 @@ export function AppShell({
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-muted/30 text-foreground">
+      <div className="min-h-screen bg-background text-foreground">
         <div className="flex min-h-screen">
           <Sidebar />
 
@@ -35,12 +35,15 @@ export function AppShell({
           <div className="flex min-w-0 flex-1 flex-col">
             <Topbar onMenuClick={() => setMobileOpen(true)} />
 
-            <main className="flex-1 overflow-auto">
-              {children}
+            <main className="min-h-0 flex-1 overflow-auto">
+              <div className="min-h-full">
+                {children}
+              </div>
             </main>
           </div>
         </div>
       </div>
+
       <Toaster />
     </ThemeProvider>
   )

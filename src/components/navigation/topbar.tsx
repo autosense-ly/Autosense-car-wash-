@@ -18,12 +18,17 @@ type TopbarProps = {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const [profile, setProfile] = useState<{ name: string; role: string } | null>(null)
+  const [profile, setProfile] = useState<{
+    name: string
+    role: string
+  } | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
+
       supabase
         .from("app_users")
         .select("name, role")
@@ -43,11 +48,17 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   }
 
   const initials = profile?.name
-    ? profile.name.trim().slice(0, 2).toUpperCase()
+    ? profile.name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase()
     : "?"
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-[68px] shrink-0 items-center border-b border-border/70 bg-background/95 px-5 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:px-7">
       <Button
         variant="ghost"
         size="icon"
@@ -59,36 +70,42 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </Button>
 
       <div className="hidden lg:block">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm font-medium text-foreground">
           Welcome back
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Manage your car wash operations
         </p>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground"
+          onClick={() =>
+            setTheme(theme === "dark" ? "light" : "dark")
+          }
           aria-label="Toggle theme"
         >
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </Button>
 
-        <div className="hidden h-8 w-px bg-border sm:block" />
+        <div className="mx-2 hidden h-7 w-px bg-border sm:block" />
 
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-blue-600 text-xs text-white">
+        <div className="flex items-center gap-3 pl-1">
+          <Avatar className="h-9 w-9 border border-border">
+            <AvatarFallback className="bg-blue-600 text-xs font-semibold text-white">
               {initials}
             </AvatarFallback>
           </Avatar>
 
-          <div className="hidden text-left sm:block">
-            <p className="text-sm font-medium leading-none">
+          <div className="hidden min-w-0 sm:block">
+            <p className="max-w-[180px] truncate text-sm font-medium leading-tight">
               {profile?.name ?? "Loading..."}
             </p>
-            <p className="mt-1 text-xs capitalize text-muted-foreground">
+            <p className="mt-1 text-[11px] capitalize text-muted-foreground">
               {profile?.role ?? ""}
             </p>
           </div>
@@ -97,6 +114,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Button
           variant="ghost"
           size="icon"
+          className="ml-1 h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive"
           onClick={handleSignOut}
           aria-label="Sign out"
           title="Sign out"
