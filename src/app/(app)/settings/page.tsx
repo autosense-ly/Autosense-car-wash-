@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
   Bell,
@@ -26,6 +27,7 @@ const sections = [
     title: "Permissions",
     description: "Control exactly what owners, managers and workers can access.",
     icon: LockKeyhole,
+    href: "/settings/permissions",
   },
   {
     title: "Services",
@@ -86,12 +88,8 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1000px] space-y-6 p-4 lg:p-6">
-
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Settings
-        </h1>
-
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Configure AutoSense for how your business operates.
         </p>
@@ -104,6 +102,7 @@ export default function SettingsPage() {
             Your Business
           </CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-3">
           {loading && (
             <p className="text-sm text-muted-foreground">Loading...</p>
@@ -121,14 +120,17 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">Business name</p>
                 <p className="font-medium">{business.name}</p>
               </div>
+
               <div>
                 <p className="text-sm text-muted-foreground">
                   Business ID — share this with anyone joining as a manager
                 </p>
+
                 <div className="mt-1 flex items-center gap-2">
                   <code className="flex-1 rounded-md border border-border bg-secondary px-3 py-2 text-xs">
                     {business.id}
                   </code>
+
                   <Button
                     type="button"
                     variant="outline"
@@ -146,46 +148,49 @@ export default function SettingsPage() {
       </Card>
 
       <div className="space-y-3">
-
         {sections.map((section) => {
           const Icon = section.icon
+
+          const content = (
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                <Icon className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{section.title}</p>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {section.description}
+                </p>
+              </div>
+
+              <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+            </CardContent>
+          )
+
+          if (section.href) {
+            return (
+              <Link key={section.title} href={section.href} className="block">
+                <Card className="cursor-pointer transition-colors hover:bg-muted/40">
+                  {content}
+                </Card>
+              </Link>
+            )
+          }
 
           return (
             <Card
               key={section.title}
               className="cursor-pointer transition-colors hover:bg-muted/40"
             >
-
-              <CardContent className="flex items-center gap-4 p-5">
-
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                  <Icon className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-
-                  <p className="font-medium">
-                    {section.title}
-                  </p>
-
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {section.description}
-                  </p>
-
-                </div>
-
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-
-              </CardContent>
-
+              {content}
             </Card>
           )
         })}
-
       </div>
 
       <Card>
-
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Settings2 className="h-4 w-4" />
@@ -194,18 +199,14 @@ export default function SettingsPage() {
         </CardHeader>
 
         <CardContent>
-
           <p className="text-sm leading-6 text-muted-foreground">
             AutoSense is designed to adapt to how each car wash operates.
             Owners should be able to decide which features managers can
             access, who can collect payments, what information is visible,
             and which services are available.
           </p>
-
         </CardContent>
-
       </Card>
-
     </div>
   )
 }
