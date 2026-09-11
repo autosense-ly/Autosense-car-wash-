@@ -40,6 +40,14 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  const redirectWithCookies = (url: URL) => {
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie)
+    })
+    return response
+  }
+
   const path = request.nextUrl.pathname
   const isAuthRoute = path.startsWith('/login') || path.startsWith('/signup')
   const isApiRoute = path.startsWith('/api')
@@ -48,13 +56,13 @@ export async function proxy(request: NextRequest) {
     console.log('[proxy] no user, redirecting to /login. path=', path)
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url)
   }
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url)
   }
 
   if (user && !isAuthRoute && !isApiRoute) {
@@ -64,7 +72,12 @@ export async function proxy(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    console.log('[proxy] path=', path, 'user=', user.id, 'profile=', profile, 'profileError=', profileError?.message)
+    console.log(
+      '[proxy] path=', path,
+      'user=', user.id,
+      'profile=', profile,
+      'profileError=', profileError?.message
+    )
 
     const role = profile?.role
 
@@ -72,12 +85,14 @@ export async function proxy(request: NextRequest) {
       console.log('[proxy] blocking /settings, role was:', role)
       const url = request.nextUrl.clone()
       url.pathname = '/operations'
-      return NextResponse.redirect(url)
+      return redirectWithCookies(url)
     }
 
     if (role === 'manager') {
       const matchedRoute = Object.keys(ROUTE_PERMISSIONS).find(
-        (route) => path === route || (route !== '/' && path.startsWith(`${route}/`))
+        (route) =>
+          path === route ||
+          (route !== '/' && path.startsWith(`${route}/`))
       )
 
       if (matchedRoute) {
@@ -88,15 +103,21 @@ export async function proxy(request: NextRequest) {
           .eq('user_id', user.id)
           .single()
 
-        console.log('[proxy] permKey=', permKey, 'perms=', perms, 'permsError=', permsError?.message)
+        console.log(
+          '[proxy] permKey=', permKey,
+          'perms=', perms,
+          'permsError=', permsError?.message
+        )
 
-        const allowed = perms ? (perms as unknown as Record<string, boolean>)[permKey] : false
+        const allowed = perms
+          ? (perms as unknown as Record<string, boolean>)[permKey]
+          : false
 
         if (!allowed && path !== '/operations') {
           console.log('[proxy] blocking', path, '- allowed was:', allowed)
           const url = request.nextUrl.clone()
           url.pathname = '/operations'
-          return NextResponse.redirect(url)
+          return redirectWithCookies(url)
         }
       }
     }
