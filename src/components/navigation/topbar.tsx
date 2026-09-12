@@ -62,14 +62,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden"
+        className="shrink-0"
         onClick={onMenuClick}
         aria-label="Open navigation"
+        title="Open navigation"
       >
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="hidden lg:block">
+      <div className="ml-3 hidden lg:block">
         <p className="text-sm font-medium text-foreground">
           Welcome back
         </p>
