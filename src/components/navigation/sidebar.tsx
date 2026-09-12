@@ -21,67 +21,16 @@ import { Separator } from "@/components/ui/separator"
 import { createClient } from "@/lib/supabase/client"
 
 const navigation = [
-  {
-    label: "Dashboard",
-    href: "/",
-    icon: LayoutDashboard,
-    permission: "dashboard",
-  },
-  {
-    label: "Operations",
-    href: "/operations",
-    icon: ClipboardList,
-    permission: "live_operations",
-    alwaysForManager: true,
-  },
-  {
-    label: "Jobs",
-    href: "/jobs",
-    icon: ClipboardList,
-    permission: "live_operations",
-  },
-  {
-    label: "Customers",
-    href: "/customers",
-    icon: UserRound,
-    permission: "customers",
-  },
-  {
-    label: "Vehicles",
-    href: "/vehicles",
-    icon: Car,
-    permission: "vehicles",
-  },
-  {
-    label: "Services",
-    href: "/services",
-    icon: Wrench,
-    permission: "services",
-  },
-  {
-    label: "Payments",
-    href: "/payments",
-    icon: CreditCard,
-    permission: "payments",
-  },
-  {
-    label: "Expenses",
-    href: "/expenses",
-    icon: Receipt,
-    permission: "expenses",
-  },
-  {
-    label: "Employees",
-    href: "/employees",
-    icon: Users,
-    permission: "workers",
-  },
-  {
-    label: "Reports",
-    href: "/reports",
-    icon: BarChart3,
-    permission: "reports",
-  },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "dashboard" },
+  { label: "Operations", href: "/operations", icon: ClipboardList, permission: "live_operations", alwaysForManager: true },
+  { label: "Jobs", href: "/jobs", icon: ClipboardList, permission: "live_operations" },
+  { label: "Customers", href: "/customers", icon: UserRound, permission: "customers" },
+  { label: "Vehicles", href: "/vehicles", icon: Car, permission: "vehicles" },
+  { label: "Services", href: "/services", icon: Wrench, permission: "services" },
+  { label: "Payments", href: "/payments", icon: CreditCard, permission: "payments" },
+  { label: "Expenses", href: "/expenses", icon: Receipt, permission: "expenses" },
+  { label: "Employees", href: "/employees", icon: Users, permission: "workers" },
+  { label: "Reports", href: "/reports", icon: BarChart3, permission: "reports" },
 ]
 
 type SidebarProps = {
@@ -97,6 +46,7 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
   const [role, setRole] = useState<"owner" | "manager" | null>(null)
   const [permissions, setPermissions] = useState<ManagerPermissions>({})
   const [loading, setLoading] = useState(true)
+  const [accessError, setAccessError] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -107,24 +57,30 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
       try {
         const {
           data: { user },
+          error: userError,
         } = await supabase.auth.getUser()
 
-        if (!user) {
+        if (userError || !user) {
           if (mounted) {
             setRole(null)
+            setAccessError(true)
             setLoading(false)
           }
           return
         }
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("app_users")
           .select("role")
           .eq("id", user.id)
           .single()
 
-        if (!profile) {
-          if (mounted) setLoading(false)
+        if (profileError || !profile) {
+          if (mounted) {
+            setRole(null)
+            setAccessError(true)
+            setLoading(false)
+          }
           return
         }
 
@@ -133,19 +89,29 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
         setRole(profile.role)
 
         if (profile.role === "manager") {
-          const { data: managerPermissions } = await supabase
-            .from("manager_permissions")
-            .select(
-              "dashboard, reports, expenses, workers, services, payments, checkin, live_operations, customers, vehicles, settings",
-            )
-            .eq("user_id", user.id)
-            .single()
+          const { data: managerPermissions, error: permissionsError } =
+            await supabase
+              .from("manager_permissions")
+              .select(
+                "dashboard, reports, expenses, workers, services, payments, checkin, live_operations, customers, vehicles, settings",
+              )
+              .eq("user_id", user.id)
+              .single()
 
-          if (mounted) {
+          if (!mounted) return
+
+          if (permissionsError || !managerPermissions) {
+            setAccessError(true)
+          } else {
             setPermissions(
-              (managerPermissions as ManagerPermissions) ?? {},
+              managerPermissions as ManagerPermissions,
             )
           }
+        }
+      } catch {
+        if (mounted) {
+          setRole(null)
+          setAccessError(true)
         }
       } finally {
         if (mounted) setLoading(false)
@@ -159,16 +125,17 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
     }
   }, [])
 
- const visibleNavigation =
-  role === "owner" || role === null
-    ? navigation
-    : navigation.filter((item) => {
-        if (loading) return true
-        if (item.alwaysForManager) return true
-        return permissions[item.permission] === true
-      })
+  const visibleNavigation =
+    role === "owner"
+      ? navigation
+      : role === "manager" && !accessError
+        ? navigation.filter((item) => {
+            if (item.alwaysForManager) return true
+            return permissions[item.permission] === true
+          })
+        : navigation
 
-  const showSettings = role === "owner"
+  const showSettings = role === "owner" || accessError
 
   return (
     <aside
@@ -260,8 +227,6 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
           )
         })}
       </nav>
-
-
     </aside>
   )
 }
