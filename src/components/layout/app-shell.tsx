@@ -18,12 +18,11 @@ export function AppShell({
     <ThemeProvider>
       <div className="min-h-screen bg-background text-foreground">
         <div className="flex min-h-screen">
-          <Sidebar />
-
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetContent
               side="left"
-              className="w-[280px] p-0"
+              showCloseButton={false}
+              className="w-[280px] max-w-[280px] overflow-hidden p-0"
             >
               <Sidebar
                 mobile

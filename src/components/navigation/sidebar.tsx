@@ -21,16 +21,67 @@ import { Separator } from "@/components/ui/separator"
 import { createClient } from "@/lib/supabase/client"
 
 const navigation = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "dashboard" },
-  { label: "Operations", href: "/operations", icon: ClipboardList, permission: "live_operations", alwaysForManager: true },
-  { label: "Jobs", href: "/jobs", icon: ClipboardList, permission: "live_operations" },
-  { label: "Customers", href: "/customers", icon: UserRound, permission: "customers" },
-  { label: "Vehicles", href: "/vehicles", icon: Car, permission: "vehicles" },
-  { label: "Services", href: "/services", icon: Wrench, permission: "services" },
-  { label: "Payments", href: "/payments", icon: CreditCard, permission: "payments" },
-  { label: "Expenses", href: "/expenses", icon: Receipt, permission: "expenses" },
-  { label: "Employees", href: "/employees", icon: Users, permission: "workers" },
-  { label: "Reports", href: "/reports", icon: BarChart3, permission: "reports" },
+  {
+    label: "Dashboard",
+    href: "/",
+    icon: LayoutDashboard,
+    permission: "dashboard",
+  },
+  {
+    label: "Operations",
+    href: "/operations",
+    icon: ClipboardList,
+    permission: "live_operations",
+    alwaysForManager: true,
+  },
+  {
+    label: "Jobs",
+    href: "/jobs",
+    icon: ClipboardList,
+    permission: "live_operations",
+  },
+  {
+    label: "Customers",
+    href: "/customers",
+    icon: UserRound,
+    permission: "customers",
+  },
+  {
+    label: "Vehicles",
+    href: "/vehicles",
+    icon: Car,
+    permission: "vehicles",
+  },
+  {
+    label: "Services",
+    href: "/services",
+    icon: Wrench,
+    permission: "services",
+  },
+  {
+    label: "Payments",
+    href: "/payments",
+    icon: CreditCard,
+    permission: "payments",
+  },
+  {
+    label: "Expenses",
+    href: "/expenses",
+    icon: Receipt,
+    permission: "expenses",
+  },
+  {
+    label: "Employees",
+    href: "/employees",
+    icon: Users,
+    permission: "workers",
+  },
+  {
+    label: "Reports",
+    href: "/reports",
+    icon: BarChart3,
+    permission: "reports",
+  },
 ]
 
 type SidebarProps = {
@@ -40,12 +91,15 @@ type SidebarProps = {
 
 type ManagerPermissions = Record<string, boolean>
 
-export function Sidebar({ mobile = false, onClose }: SidebarProps) {
+export function Sidebar({
+  mobile = false,
+  onClose,
+}: SidebarProps) {
   const pathname = usePathname()
 
   const [role, setRole] = useState<"owner" | "manager" | null>(null)
-  const [permissions, setPermissions] = useState<ManagerPermissions>({})
-  const [loading, setLoading] = useState(true)
+  const [permissions, setPermissions] =
+    useState<ManagerPermissions>({})
   const [accessError, setAccessError] = useState(false)
 
   useEffect(() => {
@@ -64,12 +118,14 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
           if (mounted) {
             setRole(null)
             setAccessError(true)
-            setLoading(false)
           }
           return
         }
 
-        const { data: profile, error: profileError } = await supabase
+        const {
+          data: profile,
+          error: profileError,
+        } = await supabase
           .from("app_users")
           .select("role")
           .eq("id", user.id)
@@ -79,7 +135,6 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
           if (mounted) {
             setRole(null)
             setAccessError(true)
-            setLoading(false)
           }
           return
         }
@@ -89,14 +144,16 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
         setRole(profile.role)
 
         if (profile.role === "manager") {
-          const { data: managerPermissions, error: permissionsError } =
-            await supabase
-              .from("manager_permissions")
-              .select(
-                "dashboard, reports, expenses, workers, services, payments, checkin, live_operations, customers, vehicles, settings",
-              )
-              .eq("user_id", user.id)
-              .single()
+          const {
+            data: managerPermissions,
+            error: permissionsError,
+          } = await supabase
+            .from("manager_permissions")
+            .select(
+              "dashboard, reports, expenses, workers, services, payments, checkin, live_operations, customers, vehicles, settings",
+            )
+            .eq("user_id", user.id)
+            .single()
 
           if (!mounted) return
 
@@ -113,8 +170,6 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
           setRole(null)
           setAccessError(true)
         }
-      } finally {
-        if (mounted) setLoading(false)
       }
     }
 
@@ -126,23 +181,22 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
   }, [])
 
   const visibleNavigation =
-    role === "owner"
-      ? navigation
-      : role === "manager" && !accessError
-        ? navigation.filter((item) => {
-            if (item.alwaysForManager) return true
-            return permissions[item.permission] === true
-          })
-        : navigation
+    role === "manager" && !accessError
+      ? navigation.filter((item) => {
+          if (item.alwaysForManager) return true
+          return permissions[item.permission] === true
+        })
+      : navigation
 
-  const showSettings = role === "owner" || accessError
+  const showSettings =
+    role === "owner" || accessError
 
   return (
     <aside
       className={
         mobile
           ? "flex h-full w-[280px] flex-col bg-background"
-          : "hidden h-screen w-[260px] shrink-0 border-r bg-background lg:flex"
+          : "flex h-screen w-[260px] shrink-0 flex-col border-r bg-background"
       }
     >
       <div className="flex h-16 items-center justify-between px-5">
@@ -159,6 +213,7 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
             <div className="text-[17px] font-semibold tracking-tight">
               AutoSense
             </div>
+
             <div className="text-[11px] text-muted-foreground">
               Car Wash Management
             </div>
