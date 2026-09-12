@@ -159,14 +159,14 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
     }
   }, [])
 
-  const visibleNavigation =
-    role === "owner"
-      ? navigation
-      : navigation.filter((item) => {
-          if (loading) return true
-          if (item.alwaysForManager) return true
-          return permissions[item.permission] === true
-        })
+ const visibleNavigation =
+  role === "owner" || role === null
+    ? navigation
+    : navigation.filter((item) => {
+        if (loading) return true
+        if (item.alwaysForManager) return true
+        return permissions[item.permission] === true
+      })
 
   const showSettings = role === "owner"
 
