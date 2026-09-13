@@ -62,7 +62,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="shrink-0"
+        className="shrink-0 lg:hidden"
         onClick={onMenuClick}
         aria-label="Open navigation"
         title="Open navigation"
@@ -70,11 +70,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="ml-3 hidden lg:block">
+      <div className="ml-3">
         <p className="text-sm font-medium text-foreground">
           Welcome back
         </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">
           Manage your car wash operations
         </p>
       </div>

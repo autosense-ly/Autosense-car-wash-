@@ -18,6 +18,10 @@ export function AppShell({
     <ThemeProvider>
       <div className="min-h-screen bg-background text-foreground">
         <div className="flex min-h-screen">
+          <aside className="hidden lg:flex lg:h-screen lg:w-[260px] lg:shrink-0 lg:border-r lg:border-border">
+            <Sidebar />
+          </aside>
+
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetContent
               side="left"
