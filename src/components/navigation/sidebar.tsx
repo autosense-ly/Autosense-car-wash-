@@ -40,7 +40,6 @@ const navigationSections = [
         href: "/operations",
         icon: ClipboardList,
         permission: "live_operations",
-        alwaysForManager: true,
       },
       {
         label: "Jobs",
@@ -189,11 +188,12 @@ export function Sidebar({
 
           if (permissionsError || !managerPermissions) {
             setAccessError(true)
-          } else {
-            setPermissions(
-              managerPermissions as ManagerPermissions,
-            )
+            return
           }
+
+          setPermissions(
+            managerPermissions as ManagerPermissions,
+          )
         }
       } catch {
         if (mounted) {
@@ -215,16 +215,18 @@ export function Sidebar({
       ...section,
       items:
         role === "manager" && !accessError
-          ? section.items.filter((item) => {
-              if (item.alwaysForManager) return true
-              return permissions[item.permission] === true
-            })
+          ? section.items.filter(
+              (item) => permissions[item.permission] === true
+            )
           : section.items,
     }))
     .filter((section) => section.items.length > 0)
 
   const showSettings =
-    role === "owner" || accessError
+    role === "owner" ||
+    (role === "manager" &&
+      !accessError &&
+      permissions.settings === true)
 
   return (
     <aside

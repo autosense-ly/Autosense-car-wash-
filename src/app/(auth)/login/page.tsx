@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Car } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -22,22 +20,24 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    setLoading(false)
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
     if (error) {
+      setLoading(false)
       setError(error.message)
       return
     }
 
-    router.push('/')
-    router.refresh()
+    // Use a full document navigation so the server-side permission
+    // redirect is handled by the browser instead of Next's RSC router.
+    window.location.assign('/')
   }
 
   return (
     <div className="dark flex min-h-screen w-full bg-background text-foreground">
-      {/* Left panel — brand side */}
       <div className="flex w-[45%] flex-col justify-between border-r border-border bg-sidebar px-16 py-12">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
@@ -82,7 +82,6 @@ export default function LoginPage() {
         <p className="text-xs text-muted-foreground">© 2026 AutoSense</p>
       </div>
 
-      {/* Right panel — sign-in form */}
       <div className="flex w-[55%] items-center justify-center px-16">
         <div className="w-full max-w-sm">
           <h2 className="text-2xl font-semibold">Welcome back</h2>
