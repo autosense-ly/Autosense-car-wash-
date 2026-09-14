@@ -69,14 +69,26 @@ export default function VehiclesPage() {
 
   async function loadData() {
     setLoading(true)
+
     const supabase = createClient()
 
-    const [{ data: vehicleData, error: vehicleError }, { data: customerData }, { data: statsData }] =
-      await Promise.all([
-        supabase.from("vehicles").select("*").order("created_at", { ascending: true }),
-        supabase.from("customers").select("id, name").order("name", { ascending: true }),
-        supabase.from("vehicle_visit_stats").select("vehicle_id, visit_count"),
-      ])
+    const [
+      { data: vehicleData, error: vehicleError },
+      { data: customerData },
+      { data: statsData },
+    ] = await Promise.all([
+      supabase
+        .from("vehicles")
+        .select("*")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("customers")
+        .select("id, name")
+        .order("name", { ascending: true }),
+      supabase
+        .from("vehicle_visit_stats")
+        .select("vehicle_id, visit_count"),
+    ])
 
     if (vehicleError) {
       toast.error("Couldn't load vehicles: " + vehicleError.message)
@@ -88,11 +100,12 @@ export default function VehiclesPage() {
     setCustomers((customerData as Customer[]) ?? [])
 
     const stats: Record<string, number> = {}
+
     for (const row of statsData ?? []) {
       stats[row.vehicle_id] = row.visit_count
     }
-    setVisitStats(stats)
 
+    setVisitStats(stats)
     setLoading(false)
   }
 
@@ -105,13 +118,15 @@ export default function VehiclesPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
+
     if (!q) return vehicles
+
     return vehicles.filter(
       (v) =>
         v.plate_number.toLowerCase().includes(q) ||
         (v.make ?? "").toLowerCase().includes(q) ||
         (v.model ?? "").toLowerCase().includes(q) ||
-        customerName(v.customer_id).toLowerCase().includes(q)
+        customerName(v.customer_id).toLowerCase().includes(q),
     )
   }, [search, vehicles, customers])
 
@@ -123,6 +138,7 @@ export default function VehiclesPage() {
 
   function openEditDialog(vehicle: Vehicle) {
     setEditingId(vehicle.id)
+
     setForm({
       plate_number: vehicle.plate_number,
       make: vehicle.make ?? "",
@@ -131,6 +147,7 @@ export default function VehiclesPage() {
       car_color: vehicle.car_color ?? "",
       customer_id: vehicle.customer_id ?? "",
     })
+
     setDialogOpen(true)
   }
 
@@ -141,9 +158,13 @@ export default function VehiclesPage() {
     }
 
     setSaving(true)
+
     const supabase = createClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       toast.error("Not logged in")
       setSaving(false)
@@ -173,7 +194,10 @@ export default function VehiclesPage() {
     }
 
     const { error } = editingId
-      ? await supabase.from("vehicles").update(payload).eq("id", editingId)
+      ? await supabase
+          .from("vehicles")
+          .update(payload)
+          .eq("id", editingId)
       : await supabase.from("vehicles").insert(payload)
 
     setSaving(false)
@@ -189,190 +213,308 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 lg:p-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Vehicles</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Vehicles registered with your car wash.
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="space-y-5">
+        <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Vehicles
+            </h1>
 
-        <Button className="gap-2" onClick={openAddDialog}>
-          <Plus className="h-4 w-4" />
-          Add Vehicle
-        </Button>
-      </div>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search plate, vehicle or owner..."
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <p className="mt-1 text-sm text-muted-foreground">
+              Vehicles registered with your car wash.
+            </p>
           </div>
-        </CardContent>
-      </Card>
 
-      {loading && (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Loading vehicles...
-        </div>
-      )}
+          <Button
+            onClick={openAddDialog}
+            className="h-10 w-full gap-2 rounded-xl bg-blue-600 px-4 shadow-sm hover:bg-blue-700 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Add Vehicle
+          </Button>
+        </section>
 
-      {!loading && filtered.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border py-16 text-center text-muted-foreground">
-          {vehicles.length === 0
-            ? "No vehicles yet. Add your first one to get started."
-            : "No vehicles match that search."}
-        </div>
-      )}
+        <Card size="sm" className="premium-hover">
+          <CardContent className="p-3 sm:p-4">
+            <div className="relative w-full max-w-xl">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
-      {!loading && filtered.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((vehicle) => (
-            <Card
-              key={vehicle.id}
-              className="cursor-pointer transition-shadow hover:shadow-sm"
-              onClick={() => openEditDialog(vehicle)}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                    <Car className="h-5 w-5" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">
-                          {[vehicle.make, vehicle.model].filter(Boolean).join(" ") || "Unnamed vehicle"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {vehicle.year ?? "Year not set"}
-                        </p>
-                      </div>
-                      <span className="rounded-md border px-2 py-1 text-xs font-medium">
-                        {vehicle.plate_number}
-                      </span>
-                    </div>
-
-                    <div className="mt-5 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Owner</span>
-                        <span className="font-medium">{customerName(vehicle.customer_id)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Visits</span>
-                        <span className="font-medium">{visitStats[vehicle.id] ?? 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Edit vehicle" : "Add vehicle"}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="plate_number">Plate number</Label>
               <Input
-                id="plate_number"
-                value={form.plate_number}
-                onChange={(e) => setForm((f) => ({ ...f, plate_number: e.target.value }))}
+                placeholder="Search plate, vehicle or owner..."
+                className="h-10 rounded-xl border-border/70 bg-background pl-9 text-sm shadow-none focus-visible:ring-2"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="make">Make</Label>
-                <Input
-                  id="make"
-                  placeholder="Toyota"
-                  value={form.make}
-                  onChange={(e) => setForm((f) => ({ ...f, make: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="model">Model</Label>
-                <Input
-                  id="model"
-                  placeholder="Camry"
-                  value={form.model}
-                  onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-                />
-              </div>
-            </div>
+        {loading && (
+          <Card size="sm" className="premium-hover">
+            <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Loading vehicles...
+            </CardContent>
+          </Card>
+        )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  placeholder="2021"
-                  value={form.year}
-                  onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="car_color">Color</Label>
-                <Input
-                  id="car_color"
-                  value={form.car_color}
-                  onChange={(e) => setForm((f) => ({ ...f, car_color: e.target.value }))}
-                />
-              </div>
-            </div>
+        {!loading && filtered.length === 0 && (
+          <Card size="sm" className="premium-hover">
+            <CardContent className="flex min-h-[220px] items-center justify-center px-4 py-10 text-center">
+              <div className="max-w-sm">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                  <Car className="h-5 w-5" />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Owner</Label>
-              <Select
-                value={form.customer_id}
-                onValueChange={(v) => setForm((f) => ({ ...f, customer_id: v ?? "" }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="No owner set" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {customers.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  No customers yet — add one on the Customers page first if you want to link an owner.
+                <p className="mt-4 text-sm font-semibold">
+                  {vehicles.length === 0
+                    ? "No vehicles yet"
+                    : "No vehicles found"}
                 </p>
-              )}
-            </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : editingId ? "Save changes" : "Add vehicle"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                  {vehicles.length === 0
+                    ? "Add your first vehicle to get started."
+                    : "Try changing your search."}
+                </p>
+
+                {vehicles.length === 0 && (
+                  <Button
+                    onClick={openAddDialog}
+                    className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    Add Vehicle
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((vehicle) => (
+              <Card
+                key={vehicle.id}
+                size="sm"
+                className="premium-hover cursor-pointer"
+                onClick={() => openEditDialog(vehicle)}
+              >
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <Car className="h-5 w-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-semibold sm:text-sm">
+                            {[vehicle.make, vehicle.model]
+                              .filter(Boolean)
+                              .join(" ") || "Unnamed vehicle"}
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
+                            {vehicle.year ?? "Year not set"}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 rounded-lg border border-border/70 bg-muted/30 px-2.5 py-1 text-[10px] font-semibold tracking-wide sm:text-xs">
+                          {vehicle.plate_number}
+                        </span>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
+                          <p className="text-[10px] font-medium text-muted-foreground">
+                            Owner
+                          </p>
+
+                          <p className="mt-1 truncate text-[12px] font-semibold">
+                            {customerName(vehicle.customer_id)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
+                          <p className="text-[10px] font-medium text-muted-foreground">
+                            Visits
+                          </p>
+
+                          <p className="mt-1 text-sm font-semibold">
+                            {visitStats[vehicle.id] ?? 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-[10px] text-muted-foreground">
+                        Click to edit vehicle
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="rounded-2xl sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-lg">
+                {editingId ? "Edit vehicle" : "Add vehicle"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="plate_number">Plate number</Label>
+
+                <Input
+                  id="plate_number"
+                  value={form.plate_number}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      plate_number: e.target.value,
+                    }))
+                  }
+                  className="h-10 rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="make">Make</Label>
+
+                  <Input
+                    id="make"
+                    placeholder="Toyota"
+                    value={form.make}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        make: e.target.value,
+                      }))
+                    }
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="model">Model</Label>
+
+                  <Input
+                    id="model"
+                    placeholder="Camry"
+                    value={form.model}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        model: e.target.value,
+                      }))
+                    }
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="year">Year</Label>
+
+                  <Input
+                    id="year"
+                    type="number"
+                    placeholder="2021"
+                    value={form.year}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        year: e.target.value,
+                      }))
+                    }
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="car_color">Color</Label>
+
+                  <Input
+                    id="car_color"
+                    value={form.car_color}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        car_color: e.target.value,
+                      }))
+                    }
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Owner</Label>
+
+                <Select
+                  value={form.customer_id}
+                  onValueChange={(v) =>
+                    setForm((f) => ({
+                      ...f,
+                      customer_id: v ?? "",
+                    }))
+                  }
+                >
+                  <SelectTrigger className="h-10 rounded-xl">
+                    <SelectValue placeholder="No owner set" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {customers.length === 0 && (
+                  <p className="text-[11px] leading-5 text-muted-foreground">
+                    No customers yet — add one on the Customers page first if
+                    you want to link an owner.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-xl bg-blue-600 hover:bg-blue-700"
+              >
+                {saving
+                  ? "Saving..."
+                  : editingId
+                    ? "Save changes"
+                    : "Add vehicle"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }
