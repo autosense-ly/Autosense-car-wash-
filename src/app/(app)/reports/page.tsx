@@ -91,12 +91,11 @@ export default function ReportsPage() {
           throw new Error("You are not logged in")
         }
 
-        const { data: profile, error: profileError } =
-          await supabase
-            .from("app_users")
-            .select("business_id")
-            .eq("id", authData.user.id)
-            .single()
+        const { data: profile, error: profileError } = await supabase
+          .from("app_users")
+          .select("business_id")
+          .eq("id", authData.user.id)
+          .single()
 
         if (profileError || !profile) {
           throw new Error("Couldn't find your business profile")
@@ -159,7 +158,9 @@ export default function ReportsPage() {
         setPayments(
           (paymentsResult.data as PaymentRow[]) ?? [],
         )
+
         setJobs((jobsResult.data as JobRow[]) ?? [])
+
         setExpenses(
           (expensesResult.data as ExpenseRow[]) ?? [],
         )
@@ -189,10 +190,7 @@ export default function ReportsPage() {
     return payments.reduce((sum, payment) => {
       const paymentDate = new Date(payment.created_at)
 
-      if (
-        paymentDate >= today &&
-        paymentDate < tomorrow
-      ) {
+      if (paymentDate >= today && paymentDate < tomorrow) {
         return sum + toNumber(payment.amount)
       }
 
@@ -212,10 +210,7 @@ export default function ReportsPage() {
     return expenses.reduce((sum, expense) => {
       const expenseDate = new Date(expense.expense_date)
 
-      if (
-        expenseDate >= today &&
-        expenseDate < tomorrow
-      ) {
+      if (expenseDate >= today && expenseDate < tomorrow) {
         return sum + toNumber(expense.amount)
       }
 
@@ -241,10 +236,7 @@ export default function ReportsPage() {
         (sum, payment) => {
           const paymentDate = new Date(payment.created_at)
 
-          if (
-            paymentDate >= day &&
-            paymentDate < nextDay
-          ) {
+          if (paymentDate >= day && paymentDate < nextDay) {
             return sum + toNumber(payment.amount)
           }
 
@@ -256,10 +248,7 @@ export default function ReportsPage() {
       const jobCount = jobs.filter((job) => {
         const jobDate = new Date(job.created_at)
 
-        return (
-          jobDate >= day &&
-          jobDate < nextDay
-        )
+        return jobDate >= day && jobDate < nextDay
       }).length
 
       const expenseTotal = expenses.reduce(
@@ -268,10 +257,7 @@ export default function ReportsPage() {
             expense.expense_date,
           )
 
-          if (
-            expenseDate >= day &&
-            expenseDate < nextDay
-          ) {
+          if (expenseDate >= day && expenseDate < nextDay) {
             return sum + toNumber(expense.amount)
           }
 
@@ -316,6 +302,7 @@ export default function ReportsPage() {
     )
 
     const csv = [header, ...rows].join("\n")
+
     const blob = new Blob([csv], {
       type: "text/csv;charset=utf-8;",
     })
@@ -325,6 +312,7 @@ export default function ReportsPage() {
 
     link.href = url
     link.download = `autosense-report-${dateKey(today)}.csv`
+
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -336,255 +324,275 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-center p-6 py-20 text-sm text-muted-foreground">
-        Loading reports...
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-[1600px] items-center justify-center px-4 py-12 text-sm text-muted-foreground sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm">
+          <BarChart3 className="h-4 w-4 animate-pulse text-blue-600 dark:text-blue-400" />
+          Loading reports...
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 lg:p-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Reports
-          </h1>
+    <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="space-y-6">
+        <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400">
+              Analytics
+            </p>
 
-          <p className="mt-1 text-sm text-muted-foreground">
-            Understand your car wash performance.
-          </p>
-        </div>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              Reports
+            </h1>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-          >
-            <CalendarDays className="h-4 w-4" />
-            Today
-          </Button>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Understand your car wash performance.
+            </p>
+          </div>
 
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={exportCsv}
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-        </div>
-      </div>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Button
+              variant="outline"
+              className="h-9 flex-1 rounded-xl gap-2 sm:flex-none"
+            >
+              <CalendarDays className="h-4 w-4" />
+              Today
+            </Button>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Revenue
-                </p>
+            <Button
+              variant="outline"
+              className="h-9 flex-1 rounded-xl gap-2 sm:flex-none"
+              onClick={exportCsv}
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
+        </section>
 
-                <p className="mt-2 text-2xl font-semibold">
-                  {revenueToday.toFixed(2)} LYD
-                </p>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="rounded-2xl border-2 border-border shadow-md transition-shadow hover:shadow-lg dark:border-border/90">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    Revenue
+                  </p>
+
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">
+                    {revenueToday.toFixed(2)} LYD
+                  </p>
+
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Today&apos;s recorded payments
+                  </div>
+                </div>
+
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                  <CircleDollarSign className="h-5 w-5" />
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <CircleDollarSign className="h-5 w-5 text-blue-600" />
-            </div>
+          <Card className="rounded-2xl border-2 border-border shadow-md transition-shadow hover:shadow-lg dark:border-border/90">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    Cars
+                  </p>
 
-            <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-              <ArrowUpRight className="h-3.5 w-3.5" />
-              Today's recorded payments
-            </div>
-          </CardContent>
-        </Card>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">
+                    {carsToday}
+                  </p>
 
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Cars
-                </p>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    Today&apos;s jobs
+                  </div>
+                </div>
 
-                <p className="mt-2 text-2xl font-semibold">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                  <Car className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-2 border-border shadow-md transition-shadow hover:shadow-lg dark:border-border/90">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    Expenses
+                  </p>
+
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">
+                    {expensesToday.toFixed(2)} LYD
+                  </p>
+
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <ArrowDownRight className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                    Today&apos;s recorded expenses
+                  </div>
+                </div>
+
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                  <Receipt className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-2 border-border shadow-md transition-shadow hover:shadow-lg dark:border-border/90">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    Estimated Net
+                  </p>
+
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">
+                    {estimatedNet.toFixed(2)} LYD
+                  </p>
+
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Revenue minus recorded expenses
+                  </p>
+                </div>
+
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-2">
+          <Card className="rounded-2xl border-2 border-border shadow-md dark:border-border/90">
+            <CardHeader className="border-b border-border/60 px-4 py-4 sm:px-5">
+              <CardTitle className="text-base">
+                Revenue Summary
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Recorded payments over the last seven days.
+              </p>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex h-[280px] items-end gap-2 sm:gap-3">
+                {dailyRevenue.map((day) => {
+                  const height =
+                    day.amount > 0
+                      ? Math.max(
+                          (day.amount / maxRevenue) * 100,
+                          4,
+                        )
+                      : 2
+
+                  return (
+                    <div
+                      key={day.date}
+                      className="flex h-full min-w-0 flex-1 flex-col items-center gap-2"
+                    >
+                      <div className="flex h-full w-full items-end">
+                        <div
+                          className="w-full min-w-[12px] rounded-t-lg bg-blue-600 transition-all duration-300 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
+                          style={{
+                            height: `${height}%`,
+                          }}
+                          title={`${day.amount.toFixed(2)} LYD`}
+                        />
+                      </div>
+
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {day.label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-2 border-border shadow-md dark:border-border/90">
+            <CardHeader className="border-b border-border/60 px-4 py-4 sm:px-5">
+              <CardTitle className="text-base">
+                Daily Summary
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Today&apos;s recorded business activity.
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-3 p-4 sm:p-5">
+              <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/10 p-4">
+                <div>
+                  <p className="text-sm font-medium">
+                    Total Jobs
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Today&apos;s jobs
+                  </p>
+                </div>
+
+                <p className="text-lg font-semibold">
                   {carsToday}
                 </p>
               </div>
 
-              <Car className="h-5 w-5 text-blue-600" />
-            </div>
+              <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/10 p-4">
+                <div>
+                  <p className="text-sm font-medium">
+                    Total Revenue
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    All recorded payments today
+                  </p>
+                </div>
 
-            <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-              <ArrowUpRight className="h-3.5 w-3.5" />
-              Today's jobs
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Expenses
+                <p className="font-semibold">
+                  {revenueToday.toFixed(2)} LYD
                 </p>
+              </div>
 
-                <p className="mt-2 text-2xl font-semibold">
+              <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/10 p-4">
+                <div>
+                  <p className="text-sm font-medium">
+                    Total Expenses
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Recorded business expenses today
+                  </p>
+                </div>
+
+                <p className="font-semibold">
                   {expensesToday.toFixed(2)} LYD
                 </p>
               </div>
 
-              <Receipt className="h-5 w-5 text-blue-600" />
-            </div>
+              <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+                <div>
+                  <p className="text-sm font-semibold">
+                    Estimated Net
+                  </p>
 
-            <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-              <ArrowDownRight className="h-3.5 w-3.5" />
-              Today's recorded expenses
-            </div>
-          </CardContent>
-        </Card>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Revenue minus expenses
+                  </p>
+                </div>
 
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Estimated Net
-                </p>
-
-                <p className="mt-2 text-2xl font-semibold">
+                <p className="font-semibold text-blue-600 dark:text-blue-400">
                   {estimatedNet.toFixed(2)} LYD
                 </p>
               </div>
-
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-            </div>
-
-            <p className="mt-3 text-xs text-muted-foreground">
-              Revenue minus recorded expenses
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Revenue Summary
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <div className="flex h-[280px] items-end gap-3">
-              {dailyRevenue.map((day) => {
-                const height =
-                  day.amount > 0
-                    ? Math.max(
-                        (day.amount / maxRevenue) * 100,
-                        4,
-                      )
-                    : 2
-
-                return (
-                  <div
-                    key={day.date}
-                    className="flex h-full flex-1 flex-col items-center gap-2"
-                  >
-                    <div className="flex h-full w-full items-end">
-                      <div
-                        className="w-full rounded-t-md bg-blue-600"
-                        style={{
-                          height: `${height}%`,
-                        }}
-                        title={`${day.amount.toFixed(2)} LYD`}
-                      />
-                    </div>
-
-                    <span className="text-[10px] text-muted-foreground">
-                      {day.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Daily Summary
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">
-                  Total Jobs
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Today's jobs
-                </p>
-              </div>
-
-              <p className="font-semibold">
-                {carsToday}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">
-                  Total Revenue
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  All recorded payments today
-                </p>
-              </div>
-
-              <p className="font-semibold">
-                {revenueToday.toFixed(2)} LYD
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">
-                  Total Expenses
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Recorded business expenses today
-                </p>
-              </div>
-
-              <p className="font-semibold">
-                {expensesToday.toFixed(2)} LYD
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg bg-blue-50 p-4 dark:bg-blue-950/30">
-              <div>
-                <p className="text-sm font-medium">
-                  Estimated Net
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Revenue minus expenses
-                </p>
-              </div>
-
-              <p className="font-semibold text-blue-600">
-                {estimatedNet.toFixed(2)} LYD
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </div>
   )
