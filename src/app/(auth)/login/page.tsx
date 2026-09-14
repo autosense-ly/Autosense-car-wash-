@@ -20,6 +20,7 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -31,8 +32,6 @@ export default function LoginPage() {
       return
     }
 
-    // Use a full document navigation so the server-side permission
-    // redirect is handled by the browser instead of Next's RSC router.
     window.location.assign('/')
   }
 
@@ -43,9 +42,12 @@ export default function LoginPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
             <Car className="h-5 w-5 text-primary-foreground" />
           </div>
+
           <div>
             <p className="text-sm font-semibold leading-none">AutoSense</p>
-            <p className="text-xs text-muted-foreground">Car Wash Management</p>
+            <p className="text-xs text-muted-foreground">
+              Car Wash Management
+            </p>
           </div>
         </div>
 
@@ -53,30 +55,11 @@ export default function LoginPage() {
           <h1 className="text-4xl font-semibold leading-tight">
             Run the whole wash from one screen.
           </h1>
-          <p className="mt-4 text-muted-foreground">
-            Jobs, payments, and your team — tracked in real time, from check-in to completed.
-          </p>
 
-          <div className="mt-10 rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">Today&apos;s pipeline</p>
-            <div className="mt-4 flex items-end gap-6">
-              <div>
-                <p className="text-2xl font-semibold">4</p>
-                <p className="text-xs text-muted-foreground">Waiting</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold">3</p>
-                <p className="text-xs text-muted-foreground">In progress</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold">2</p>
-                <p className="text-xs text-muted-foreground">Ready</p>
-              </div>
-            </div>
-            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-              <div className="h-full w-4/5 rounded-full bg-primary" />
-            </div>
-          </div>
+          <p className="mt-4 text-muted-foreground">
+            Jobs, payments, and your team — tracked in real time, from check-in
+            to completed.
+          </p>
         </div>
 
         <p className="text-xs text-muted-foreground">© 2026 AutoSense</p>
@@ -85,6 +68,7 @@ export default function LoginPage() {
       <div className="flex w-[55%] items-center justify-center px-16">
         <div className="w-full max-w-sm">
           <h2 className="text-2xl font-semibold">Welcome back</h2>
+
           <p className="mt-2 text-sm text-muted-foreground">
             Sign in to your business account.
           </p>
@@ -92,6 +76,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
+
               <Input
                 id="email"
                 type="email"
@@ -104,6 +89,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
+
               <Input
                 id="password"
                 type="password"
