@@ -2,9 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Loader2, MoreHorizontal, Plus, Search } from "lucide-react"
+import {
+  CarFront,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Search,
+  UserRound,
+} from "lucide-react"
 import { toast } from "sonner"
-
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -82,6 +88,34 @@ function getPaymentStatus(
   return "partial"
 }
 
+function getStatusClass(status: JobStatus) {
+  switch (status) {
+    case "waiting":
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+    case "in_progress":
+      return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
+    case "ready":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+    case "completed":
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300"
+    case "cancelled":
+      return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+  }
+}
+
+function getPaymentClass(
+  status: "unpaid" | "partial" | "paid",
+) {
+  switch (status) {
+    case "paid":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+    case "partial":
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+    case "unpaid":
+      return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+  }
+}
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>([])
   const [payments, setPayments] = useState<PaymentRow[]>([])
@@ -142,9 +176,7 @@ export default function JobsPage() {
       setPayments((paymentsResult.data as PaymentRow[]) ?? [])
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Couldn't load jobs"
+        error instanceof Error ? error.message : "Couldn't load jobs"
 
       toast.error(message)
     } finally {
@@ -199,58 +231,72 @@ export default function JobsPage() {
   }, [jobs, search])
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 lg:p-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Jobs
-          </h1>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Search and manage every vehicle service job.
-          </p>
-        </div>
-
-        <Link href="/jobs/new">
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4" />
-            New Job
-          </Button>
-        </Link>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">
-            All Jobs
-          </CardTitle>
-
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-            <Input
-              placeholder="Search jobs..."
-              className="pl-9"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+    <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="space-y-6">
+        <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-600 dark:text-blue-400">
+              Operations
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-[28px]">
+              Jobs
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Search and manage every vehicle service job.
+            </p>
           </div>
-        </CardHeader>
 
-        <CardContent>
-          <div className="overflow-x-auto">
+          <Link href="/jobs/new">
+            <Button className="w-full gap-2 rounded-xl bg-blue-600 px-5 shadow-sm hover:bg-blue-700 sm:w-auto">
+              <Plus className="h-4 w-4" />
+              New Job
+            </Button>
+          </Link>
+        </section>
+
+        <Card className="rounded-2xl border-2 border-border bg-card shadow-md">
+          <CardHeader className="flex flex-col gap-4 border-b border-border/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <CardTitle className="text-base font-semibold">
+                All Jobs
+              </CardTitle>
+              {!loading && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {filteredJobs.length}{" "}
+                  {filteredJobs.length === 1 ? "job" : "jobs"}
+                  {search ? " found" : ""}
+                </p>
+              )}
+            </div>
+
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search jobs..."
+                className="h-10 rounded-xl border-border/80 bg-background pl-9"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
             {loading ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <div className="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Loading jobs...
               </div>
             ) : filteredJobs.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="font-medium">
+              <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                  <CarFront className="h-6 w-6" />
+                </div>
+
+                <p className="mt-4 font-semibold">
                   {search ? "No matching jobs" : "No jobs yet"}
                 </p>
 
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                   {search
                     ? "Try a different search."
                     : "Create your first job to see it here."}
@@ -258,7 +304,7 @@ export default function JobsPage() {
 
                 {!search && (
                   <Link href="/jobs/new">
-                    <Button className="mt-4">
+                    <Button className="mt-4 rounded-xl bg-blue-600 hover:bg-blue-700">
                       <Plus className="mr-2 h-4 w-4" />
                       Create Job
                     </Button>
@@ -266,107 +312,142 @@ export default function JobsPage() {
                 )}
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="pb-3 font-medium">Job</th>
-                    <th className="pb-3 font-medium">Customer</th>
-                    <th className="pb-3 font-medium">Vehicle</th>
-                    <th className="pb-3 font-medium">Service</th>
-                    <th className="pb-3 font-medium">Total</th>
-                    <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3"></th>
-                  </tr>
-                </thead>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60 bg-muted/30 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                      <th className="px-5 py-3.5">Job</th>
+                      <th className="px-4 py-3.5">Customer</th>
+                      <th className="px-4 py-3.5">Vehicle</th>
+                      <th className="px-4 py-3.5">Service</th>
+                      <th className="px-4 py-3.5">Total</th>
+                      <th className="px-4 py-3.5">Status</th>
+                      <th className="px-4 py-3.5 text-right"></th>
+                    </tr>
+                  </thead>
 
-                <tbody className="divide-y">
-                  {filteredJobs.map((job) => {
-                    const total = toNumber(job.total)
-                    const paid = paymentTotals.get(job.id) ?? 0
-                    const paymentStatus = getPaymentStatus(
-                      total,
-                      paid,
-                    )
+                  <tbody className="divide-y divide-border/50">
+                    {filteredJobs.map((job) => {
+                      const total = toNumber(job.total)
+                      const paid = paymentTotals.get(job.id) ?? 0
+                      const paymentStatus = getPaymentStatus(
+                        total,
+                        paid,
+                      )
 
-                    return (
-                      <tr
-                        key={job.id}
-                        className="transition-colors hover:bg-muted/50"
-                      >
-                        <td className="py-4 font-medium">
-                          <Link
-                            href={`/jobs/${job.id}`}
-                            className="hover:underline"
-                          >
-                            #{job.id.slice(0, 8)}
-                          </Link>
-                        </td>
-
-                        <td className="py-4">
-                          {job.customer_name || "Walk-in"}
-                        </td>
-
-                        <td className="py-4">
-                          <Link
-                            href={`/jobs/${job.id}`}
-                            className="block"
-                          >
-                            <p className="font-medium">
-                              {job.car_model || "Unnamed vehicle"}
-                            </p>
-
-                            <p className="text-xs text-muted-foreground">
-                              {job.plate_number || "No plate"}
-                            </p>
-                          </Link>
-                        </td>
-
-                        <td className="py-4">
-                          {job.job_services?.length === 1
-                            ? job.job_services[0].service_name
-                            : job.job_services?.length
-                              ? `${job.job_services[0].service_name} + ${
-                                  job.job_services.length - 1
-                                } more`
-                              : "No service"}
-                        </td>
-
-                        <td className="py-4 font-medium">
-                          {total.toFixed(2)} LYD
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {paymentStatus === "paid"
-                              ? "Paid"
-                              : paymentStatus === "partial"
-                                ? `${paid.toFixed(2)} paid`
-                                : "Unpaid"}
-                          </div>
-                        </td>
-
-                        <td className="py-4">
-                          <Badge variant="outline">
-                            {formatStatus(job.status)}
-                          </Badge>
-                        </td>
-
-                        <td className="py-4 text-right">
-                          <Link href={`/jobs/${job.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                      return (
+                        <tr
+                          key={job.id}
+                          className="group transition-colors hover:bg-muted/30"
+                        >
+                          <td className="px-5 py-4 align-middle">
+                            <Link
+                              href={`/jobs/${job.id}`}
+                              className="inline-flex items-center rounded-lg font-semibold text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                             >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                              #{job.id.slice(0, 8)}
+                            </Link>
+                          </td>
+
+                          <td className="px-4 py-4 align-middle">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                <UserRound className="h-4 w-4" />
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="truncate font-medium">
+                                  {job.customer_name || "Walk-in"}
+                                </p>
+                                {job.customer_phone && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {job.customer_phone}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 align-middle">
+                            <Link
+                              href={`/jobs/${job.id}`}
+                              className="block rounded-lg transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                            >
+                              <p className="font-medium">
+                                {job.car_model || "Unnamed vehicle"}
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {job.plate_number || "No plate"}
+                              </p>
+                            </Link>
+                          </td>
+
+                          <td className="px-4 py-4 align-middle">
+                            <p className="max-w-[190px] truncate text-muted-foreground">
+                              {job.job_services?.length === 1
+                                ? job.job_services[0].service_name
+                                : job.job_services?.length
+                                  ? `${job.job_services[0].service_name} + ${
+                                      job.job_services.length - 1
+                                    } more`
+                                  : "No service"}
+                            </p>
+                          </td>
+
+                          <td className="px-4 py-4 align-middle">
+                            <p className="font-semibold">
+                              {total.toFixed(2)} LYD
+                            </p>
+
+                            <Badge
+                              variant="outline"
+                              className={`mt-1.5 rounded-lg text-[10px] font-semibold ${getPaymentClass(
+                                paymentStatus,
+                              )}`}
+                            >
+                              {paymentStatus === "paid"
+                                ? "Paid"
+                                : paymentStatus === "partial"
+                                  ? `${paid.toFixed(2)} paid`
+                                  : "Unpaid"}
+                            </Badge>
+                          </td>
+
+                          <td className="px-4 py-4 align-middle">
+                            <Badge
+                              variant="outline"
+                              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${getStatusClass(
+                                job.status,
+                              )}`}
+                            >
+                              {formatStatus(job.status)}
+                            </Badge>
+                          </td>
+
+                          <td className="px-4 py-4 text-right align-middle">
+                            <Link href={`/jobs/${job.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-lg text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">
+                                  Open job
+                                </span>
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
