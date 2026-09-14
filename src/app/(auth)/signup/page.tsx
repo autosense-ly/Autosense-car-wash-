@@ -86,7 +86,7 @@ export default function SignupPage() {
             <Car className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-semibold leading-none">AutoSense</p>
+            <p className="text-sm font-semibold leading-none">AF Car Wash</p>
             <p className="text-xs text-muted-foreground">Car Wash Management</p>
           </div>
         </div>
@@ -101,7 +101,7 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <p className="text-xs text-muted-foreground">© 2026 AutoSense</p>
+        <p className="text-xs text-muted-foreground">© 2026 AF Car Wash</p>
       </div>
 
       {/* Right panel — form */}

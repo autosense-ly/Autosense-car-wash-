@@ -311,7 +311,7 @@ export default function ReportsPage() {
     const link = document.createElement("a")
 
     link.href = url
-    link.download = `autosense-report-${dateKey(today)}.csv`
+    link.download = `af-car-wash-report-${dateKey(today)}.csv`
 
     document.body.appendChild(link)
     link.click()

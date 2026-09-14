@@ -1,26 +1,52 @@
 "use client"
 
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
-  BarChart3,
   Car,
   ClipboardList,
   CreditCard,
+  Droplets,
+  FileBarChart,
+  Gauge,
   LayoutDashboard,
-  Receipt,
   Settings,
-  UserRound,
   Users,
+  Wallet,
   Wrench,
   X,
 } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { createClient } from "@/lib/supabase/client"
+import * as React from "react"
 
-const navigationSections = [
+type PermissionKey =
+  | "dashboard"
+  | "reports"
+  | "expenses"
+  | "workers"
+  | "services"
+  | "payments"
+  | "checkin"
+  | "live_operations"
+  | "customers"
+  | "vehicles"
+  | "settings"
+
+type NavItem = {
+  label: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  permission?: PermissionKey
+}
+
+type NavSection = {
+  label: string
+  items: NavItem[]
+}
+
+type PermissionRow = Partial<Record<PermissionKey, boolean>>
+
+const sections: NavSection[] = [
   {
     label: "Overview",
     items: [
@@ -38,14 +64,13 @@ const navigationSections = [
       {
         label: "Operations",
         href: "/operations",
-        icon: ClipboardList,
+        icon: Gauge,
         permission: "live_operations",
       },
       {
         label: "Jobs",
         href: "/jobs",
         icon: ClipboardList,
-        permission: "live_operations",
       },
     ],
   },
@@ -55,7 +80,7 @@ const navigationSections = [
       {
         label: "Customers",
         href: "/customers",
-        icon: UserRound,
+        icon: Users,
         permission: "customers",
       },
       {
@@ -72,7 +97,7 @@ const navigationSections = [
       {
         label: "Services",
         href: "/services",
-        icon: Wrench,
+        icon: Droplets,
         permission: "services",
       },
       {
@@ -95,7 +120,7 @@ const navigationSections = [
       {
         label: "Expenses",
         href: "/expenses",
-        icon: Receipt,
+        icon: Wallet,
         permission: "expenses",
       },
     ],
@@ -106,244 +131,202 @@ const navigationSections = [
       {
         label: "Reports",
         href: "/reports",
-        icon: BarChart3,
+        icon: FileBarChart,
         permission: "reports",
+      },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      {
+        label: "Settings",
+        href: "/settings",
+        icon: Settings,
+        permission: "settings",
       },
     ],
   },
 ]
 
-type SidebarProps = {
-  mobile?: boolean
-  onClose?: () => void
-}
-
-type ManagerPermissions = Record<string, boolean>
+const permissionKeys: PermissionKey[] = [
+  "dashboard",
+  "reports",
+  "expenses",
+  "workers",
+  "services",
+  "payments",
+  "checkin",
+  "live_operations",
+  "customers",
+  "vehicles",
+  "settings",
+]
 
 export function Sidebar({
   mobile = false,
   onClose,
-}: SidebarProps) {
+}: {
+  mobile?: boolean
+  onClose?: () => void
+}) {
   const pathname = usePathname()
+  const [role, setRole] = React.useState<string | null>(null)
+  const [permissions, setPermissions] = React.useState<
+    Record<PermissionKey, boolean>
+  >({} as Record<PermissionKey, boolean>)
 
-  const [role, setRole] = useState<"owner" | "manager" | null>(null)
-  const [permissions, setPermissions] =
-    useState<ManagerPermissions>({})
-  const [accessError, setAccessError] = useState(false)
-
-  useEffect(() => {
-    let mounted = true
+  React.useEffect(() => {
+    const supabase = createClient()
 
     async function loadAccess() {
-      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser()
+      if (!user) return
 
-        if (userError || !user) {
-          if (mounted) {
-            setRole(null)
-            setAccessError(true)
-          }
-          return
-        }
+      const { data: appUser } = await supabase
+        .from("app_users")
+        .select("role")
+        .eq("id", user.id)
+        .single()
 
-        const {
-          data: profile,
-          error: profileError,
-        } = await supabase
-          .from("app_users")
-          .select("role")
-          .eq("id", user.id)
-          .single()
+      if (!appUser) return
 
-        if (profileError || !profile) {
-          if (mounted) {
-            setRole(null)
-            setAccessError(true)
-          }
-          return
-        }
+      setRole(appUser.role)
 
-        if (!mounted) return
+      if (appUser.role === "owner") {
+        setPermissions(
+          Object.fromEntries(
+            permissionKeys.map((key) => [key, true])
+          ) as Record<PermissionKey, boolean>
+        )
+        return
+      }
 
-        setRole(profile.role)
+      const { data } = await supabase
+        .from("manager_permissions")
+        .select(permissionKeys.join(", "))
+        .eq("user_id", user.id)
+        .single()
 
-        if (profile.role === "manager") {
-          const {
-            data: managerPermissions,
-            error: permissionsError,
-          } = await supabase
-            .from("manager_permissions")
-            .select(
-              "dashboard, reports, expenses, workers, services, payments, checkin, live_operations, customers, vehicles, settings",
-            )
-            .eq("user_id", user.id)
-            .single()
+      if (data) {
+        const permissionRow = data as PermissionRow
 
-          if (!mounted) return
-
-          if (permissionsError || !managerPermissions) {
-            setAccessError(true)
-            return
-          }
-
-          setPermissions(
-            managerPermissions as ManagerPermissions,
-          )
-        }
-      } catch {
-        if (mounted) {
-          setRole(null)
-          setAccessError(true)
-        }
+        setPermissions(
+          Object.fromEntries(
+            permissionKeys.map((key) => [key, Boolean(permissionRow[key])])
+          ) as Record<PermissionKey, boolean>
+        )
       }
     }
 
     loadAccess()
-
-    return () => {
-      mounted = false
-    }
   }, [])
 
-  const visibleSections = navigationSections
+  const visibleSections = sections
     .map((section) => ({
       ...section,
-      items:
-        role === "manager" && !accessError
-          ? section.items.filter(
-              (item) => permissions[item.permission] === true
-            )
-          : section.items,
+      items: section.items.filter((item) => {
+        if (!item.permission) return true
+        if (role === "owner") return true
+        return permissions[item.permission] === true
+      }),
     }))
     .filter((section) => section.items.length > 0)
 
-  const showSettings =
-    role === "owner" ||
-    (role === "manager" &&
-      !accessError &&
-      permissions.settings === true)
-
   return (
-    <aside
-      className={
-        mobile
-          ? "flex h-full w-full flex-col bg-background"
-          : "flex h-full w-full flex-col bg-background"
-      }
-    >
-      <div className="flex h-[72px] shrink-0 items-center justify-between px-5">
+    <div className="flex h-full w-full flex-col bg-sidebar">
+      <div className="flex h-[72px] shrink-0 items-center border-b border-sidebar-border px-5">
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-3"
           onClick={onClose}
+          className="flex min-w-0 items-center gap-3"
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-            <Car className="h-5 w-5" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
+            <Wrench className="h-[18px] w-[18px]" />
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-[17px] font-semibold tracking-tight">
-              AutoSense
-            </div>
-
-            <div className="truncate text-[11px] text-muted-foreground">
+            <p className="truncate text-[15px] font-bold tracking-tight text-sidebar-foreground">
+              AF Car Wash
+            </p>
+            <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-sidebar-foreground/50">
               Car Wash Management
-            </div>
+            </p>
           </div>
         </Link>
 
         {mobile && (
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
+            type="button"
             onClick={onClose}
+            className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label="Close navigation"
-            title="Close navigation"
-            className="shrink-0"
           >
             <X className="h-5 w-5" />
-          </Button>
+          </button>
         )}
       </div>
 
-      <Separator />
+      <nav className="flex-1 overflow-y-auto px-3 py-5">
+        <div className="space-y-6">
+          {visibleSections.map((section) => (
+            <div key={section.label}>
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/40">
+                {section.label}
+              </p>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
-        {visibleSections.map((section) => (
-          <section key={section.label}>
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {section.label}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon
+                  const active =
+                    item.href === "/"
+                      ? pathname === "/"
+                      : pathname === item.href ||
+                        pathname.startsWith(`${item.href}/`)
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onClose}
+                      className={[
+                        "group flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all duration-150",
+                        active
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                          : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                      ].join(" ")}
+                    >
+                      <Icon
+                        className={[
+                          "h-[17px] w-[17px] shrink-0 transition-colors",
+                          active
+                            ? "text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/75",
+                        ].join(" ")}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const Icon = item.icon
-
-                const active =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`)
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={`group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className="h-[18px] w-[18px] shrink-0" />
-                    <span className="truncate">
-                      {item.label}
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        ))}
-
-        {showSettings && (
-          <section>
-            <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              System
-            </div>
-
-            <Link
-              href="/settings"
-              onClick={onClose}
-              className={`flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
-                pathname.startsWith("/settings")
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <Settings className="h-[18px] w-[18px] shrink-0" />
-              <span>Settings</span>
-            </Link>
-          </section>
-        )}
+          ))}
+        </div>
       </nav>
 
-      <div className="shrink-0 border-t border-border/70 p-4">
-        <div className="rounded-xl bg-muted/50 px-3 py-3">
-          <p className="text-xs font-medium text-foreground">
-            AutoSense
+      <div className="shrink-0 border-t border-sidebar-border p-4">
+        <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3.5 py-3">
+          <p className="text-[11px] font-semibold text-sidebar-foreground/80">
+            AF Car Wash
           </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
+          <p className="mt-0.5 text-[10px] leading-relaxed text-sidebar-foreground/40">
             Car wash management
           </p>
         </div>
       </div>
-    </aside>
+    </div>
   )
 }

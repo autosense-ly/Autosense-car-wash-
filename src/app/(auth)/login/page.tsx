@@ -44,7 +44,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <p className="text-sm font-semibold leading-none">AutoSense</p>
+            <p className="text-sm font-semibold leading-none">AF Car Wash</p>
             <p className="text-xs text-muted-foreground">
               Car Wash Management
             </p>
@@ -62,7 +62,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p className="text-xs text-muted-foreground">© 2026 AutoSense</p>
+        <p className="text-xs text-muted-foreground">© 2026 AF Car Wash</p>
       </div>
 
       <div className="flex w-[55%] items-center justify-center px-16">

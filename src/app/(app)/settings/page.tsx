@@ -118,7 +118,7 @@ export default function SettingsPage() {
                 Settings
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Configure AutoSense for how your business operates.
+                Configure AF Car Wash for how your business operates.
               </p>
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function SettingsPage() {
 
           <CardContent className="p-5">
             <p className="text-sm leading-6 text-muted-foreground">
-              AutoSense is designed to adapt to how each car wash operates.
+              AF Car Wash is designed to adapt to how each car wash operates.
               Owners should be able to decide which features managers can
               access, who can collect payments, what information is visible,
               and which services are available.
