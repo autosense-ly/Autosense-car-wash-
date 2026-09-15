@@ -1,23 +1,26 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Car,
   ClipboardList,
   CreditCard,
-  Droplets,
+  DollarSign,
   FileBarChart,
   Gauge,
   LayoutDashboard,
   Settings,
+  UserRoundCog,
   Users,
-  Wallet,
   Wrench,
   X,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import * as React from "react"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { translations } from "@/lib/i18n/translations"
 
 type PermissionKey =
   | "dashboard"
@@ -32,118 +35,120 @@ type PermissionKey =
   | "vehicles"
   | "settings"
 
+type SidebarProps = {
+  mobile?: boolean
+  onClose?: () => void
+}
+
 type NavItem = {
-  label: string
   href: string
-  icon: React.ComponentType<{ className?: string }>
+  labelKey: keyof typeof translations.en.common
+  icon: typeof Gauge
   permission?: PermissionKey
 }
 
 type NavSection = {
-  label: string
+  labelKey: keyof typeof translations.en.common
   items: NavItem[]
 }
 
-type PermissionRow = Partial<Record<PermissionKey, boolean>>
-
 const sections: NavSection[] = [
   {
-    label: "Overview",
+    labelKey: "overview",
     items: [
       {
-        label: "Dashboard",
         href: "/",
+        labelKey: "dashboard",
         icon: LayoutDashboard,
         permission: "dashboard",
       },
     ],
   },
   {
-    label: "Operations",
+    labelKey: "operations",
     items: [
       {
-        label: "Operations",
         href: "/operations",
+        labelKey: "operations",
         icon: Gauge,
         permission: "live_operations",
       },
       {
-        label: "Jobs",
         href: "/jobs",
+        labelKey: "jobs",
         icon: ClipboardList,
       },
     ],
   },
   {
-    label: "Customers",
+    labelKey: "customers",
     items: [
       {
-        label: "Customers",
         href: "/customers",
+        labelKey: "customers",
         icon: Users,
         permission: "customers",
       },
       {
-        label: "Vehicles",
         href: "/vehicles",
+        labelKey: "vehicles",
         icon: Car,
         permission: "vehicles",
       },
     ],
   },
   {
-    label: "Services & Staff",
+    labelKey: "servicesAndStaff",
     items: [
       {
-        label: "Services",
         href: "/services",
-        icon: Droplets,
+        labelKey: "services",
+        icon: Wrench,
         permission: "services",
       },
       {
-        label: "Employees",
         href: "/employees",
-        icon: Users,
+        labelKey: "employees",
+        icon: UserRoundCog,
         permission: "workers",
       },
     ],
   },
   {
-    label: "Finance",
+    labelKey: "finance",
     items: [
       {
-        label: "Payments",
         href: "/payments",
+        labelKey: "payments",
         icon: CreditCard,
         permission: "payments",
       },
       {
-        label: "Expenses",
         href: "/expenses",
-        icon: Wallet,
+        labelKey: "expenses",
+        icon: DollarSign,
         permission: "expenses",
       },
     ],
   },
   {
-    label: "Analytics",
+    labelKey: "analytics",
     items: [
       {
-        label: "Reports",
         href: "/reports",
+        labelKey: "reports",
         icon: FileBarChart,
         permission: "reports",
       },
     ],
   },
   {
-    label: "System",
+    labelKey: "system",
     items: [
       {
-        label: "Settings",
         href: "/settings",
+        labelKey: "settings",
         icon: Settings,
-        permission: "settings",
       },
     ],
   },
@@ -163,28 +168,38 @@ const permissionKeys: PermissionKey[] = [
   "settings",
 ]
 
-export function Sidebar({
-  mobile = false,
-  onClose,
-}: {
-  mobile?: boolean
-  onClose?: () => void
-}) {
+export function Sidebar({ mobile = false, onClose }: SidebarProps) {
   const pathname = usePathname()
-  const [role, setRole] = React.useState<string | null>(null)
-  const [permissions, setPermissions] = React.useState<
-    Record<PermissionKey, boolean>
-  >({} as Record<PermissionKey, boolean>)
+  const { language } = useLanguage()
+  const t = translations[language]
 
-  React.useEffect(() => {
+  const [role, setRole] = useState<"owner" | "manager" | null>(null)
+  const [permissions, setPermissions] = useState<
+    Record<PermissionKey, boolean>
+  >({
+    dashboard: false,
+    reports: false,
+    expenses: false,
+    workers: false,
+    services: false,
+    payments: false,
+    checkin: false,
+    live_operations: false,
+    customers: false,
+    vehicles: false,
+    settings: false,
+  })
+
+  useEffect(() => {
     const supabase = createClient()
+    let active = true
 
     async function loadAccess() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (!user || !active) return
 
       const { data: appUser } = await supabase
         .from("app_users")
@@ -192,11 +207,12 @@ export function Sidebar({
         .eq("id", user.id)
         .single()
 
-      if (!appUser) return
+      if (!appUser || !active) return
 
-      setRole(appUser.role)
+      const userRole = appUser.role as "owner" | "manager"
+      setRole(userRole)
 
-      if (appUser.role === "owner") {
+      if (userRole === "owner") {
         setPermissions(
           Object.fromEntries(
             permissionKeys.map((key) => [key, true])
@@ -205,24 +221,33 @@ export function Sidebar({
         return
       }
 
-      const { data } = await supabase
+      const { data: permissionRow } = await supabase
         .from("manager_permissions")
         .select(permissionKeys.join(", "))
         .eq("user_id", user.id)
         .single()
 
-      if (data) {
-        const permissionRow = data as PermissionRow
+      if (!active) return
+
+      if (permissionRow) {
+        const row = permissionRow as unknown as Record<
+          string,
+          boolean | null
+        >
 
         setPermissions(
           Object.fromEntries(
-            permissionKeys.map((key) => [key, Boolean(permissionRow[key])])
+            permissionKeys.map((key) => [key, Boolean(row[key])])
           ) as Record<PermissionKey, boolean>
         )
       }
     }
 
     loadAccess()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const visibleSections = sections
@@ -235,57 +260,62 @@ export function Sidebar({
       }),
     }))
     .filter((section) => section.items.length > 0)
+    .filter(
+      (section) =>
+        section.labelKey !== "system" || role === "owner"
+    )
 
-  return (
-    <div className="flex h-full w-full flex-col bg-sidebar">
+  function isActive(href: string) {
+    if (href === "/") return pathname === "/"
+
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`)
+    )
+  }
+
+  const content = (
+    <div className="flex h-screen flex-col bg-sidebar">
       <div className="flex h-[72px] shrink-0 items-center border-b border-sidebar-border px-5">
         <Link
           href="/"
           onClick={onClose}
-          className="flex min-w-0 items-center gap-3"
+          className="min-w-0"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-            <Wrench className="h-[18px] w-[18px]" />
-          </div>
+          <p className="truncate text-[15px] font-bold tracking-tight text-sidebar-foreground">
+            {t.branding.title}
+          </p>
 
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-bold tracking-tight text-sidebar-foreground">
-              AF Car Wash
-            </p>
-            <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-sidebar-foreground/50">
-              Car Wash Management
-            </p>
-          </div>
+          <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
+            {t.common.carWashManagementLower}
+          </p>
         </Link>
 
         {mobile && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-9 w-9 rounded-xl"
             onClick={onClose}
-            className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label="Close navigation"
+            aria-label={t.common.close}
           >
-            <X className="h-5 w-5" />
-          </button>
+            <X className="h-4 w-4" />
+          </Button>
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-5">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
         <div className="space-y-6">
           {visibleSections.map((section) => (
-            <div key={section.label}>
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/40">
-                {section.label}
+            <div key={String(section.labelKey)}>
+              <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-foreground/70">
+                {t.common[section.labelKey]}
               </p>
 
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon
-                  const active =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : pathname === item.href ||
-                        pathname.startsWith(`${item.href}/`)
+                  const active = isActive(item.href)
 
                   return (
                     <Link
@@ -293,21 +323,17 @@ export function Sidebar({
                       href={item.href}
                       onClick={onClose}
                       className={[
-                        "group flex h-10 items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all duration-150",
+                        "group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-all",
                         active
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                          : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-sidebar-foreground/85 hover:bg-muted hover:text-foreground",
                       ].join(" ")}
                     >
-                      <Icon
-                        className={[
-                          "h-[17px] w-[17px] shrink-0 transition-colors",
-                          active
-                            ? "text-sidebar-primary-foreground"
-                            : "text-sidebar-foreground/45 group-hover:text-sidebar-foreground/75",
-                        ].join(" ")}
-                      />
-                      <span className="truncate">{item.label}</span>
+                      <Icon className="h-[17px] w-[17px] shrink-0" />
+
+                      <span className="truncate">
+                        {t.common[item.labelKey]}
+                      </span>
                     </Link>
                   )
                 })}
@@ -317,16 +343,25 @@ export function Sidebar({
         </div>
       </nav>
 
-      <div className="shrink-0 border-t border-sidebar-border p-4">
-        <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3.5 py-3">
-          <p className="text-[11px] font-semibold text-sidebar-foreground/80">
-            AF Car Wash
-          </p>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-sidebar-foreground/40">
-            Car wash management
-          </p>
-        </div>
+      <div className="shrink-0 border-t border-sidebar-border px-4 py-4">
+        <p className="text-[11px] font-semibold text-sidebar-foreground/70">
+          {t.branding.copyright}
+        </p>
       </div>
     </div>
+  )
+
+  if (mobile) {
+    return (
+      <aside className="h-full w-full bg-sidebar">
+        {content}
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] border-r border-sidebar-border bg-sidebar lg:block">
+      {content}
+    </aside>
   )
 }
