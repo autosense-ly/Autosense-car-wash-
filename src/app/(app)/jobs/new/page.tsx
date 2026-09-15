@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
 
 type Service = {
   id: string
@@ -54,10 +55,6 @@ type SelectedService = {
   customPrice: string
 }
 
-// Postgres numeric columns often come back from Supabase as strings, not
-// numbers (avoids float rounding). Every price MUST go through this before
-// any arithmetic, or summing totals silently does string concatenation
-// instead of addition.
 function toNumber(value: number | string | null | undefined): number {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
@@ -65,6 +62,7 @@ function toNumber(value: number | string | null | undefined): number {
 
 export default function NewJobPage() {
   const router = useRouter()
+  const { t } = useLanguage()
 
   const [services, setServices] = useState<Service[]>([])
   const [workers, setWorkers] = useState<Worker[]>([])
@@ -172,11 +170,12 @@ export default function NewJobPage() {
 
   async function handleCreateJob() {
     if (!plateNumber.trim()) {
-      toast.error("Plate number is required")
+      toast.error(t.jobs.plateRequired)
       return
     }
+
     if (selectedServices.length === 0) {
-      toast.error("Select at least one service")
+      toast.error(t.jobs.serviceRequired)
       return
     }
 
@@ -184,8 +183,9 @@ export default function NewJobPage() {
     const supabase = createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      toast.error("Not logged in")
+      toast.error(t.jobs.notLoggedIn)
       setSaving(false)
       return
     }
@@ -197,7 +197,7 @@ export default function NewJobPage() {
       .single()
 
     if (!profile) {
-      toast.error("Couldn't find your business")
+      toast.error(t.jobs.businessNotFound)
       setSaving(false)
       return
     }
@@ -226,7 +226,7 @@ export default function NewJobPage() {
       .single()
 
     if (jobError || !job) {
-      toast.error("Couldn't create job: " + jobError?.message)
+      toast.error(t.jobs.createFailed + ": " + jobError?.message)
       setSaving(false)
       return
     }
@@ -240,16 +240,18 @@ export default function NewJobPage() {
       line_total: total,
     }))
 
-    const { error: servicesError } = await supabase.from("job_services").insert(jobServiceRows)
+    const { error: servicesError } = await supabase
+      .from("job_services")
+      .insert(jobServiceRows)
 
     setSaving(false)
 
     if (servicesError) {
-      toast.error("Job created, but services failed to attach: " + servicesError.message)
+      toast.error(t.jobs.servicesAttachFailed + ": " + servicesError.message)
       return
     }
 
-    toast.success(`Job created — ${grandTotal.toFixed(2)} LYD`)
+    toast.success(`${t.jobs.jobCreated} — ${grandTotal.toFixed(2)} LYD`)
     router.push("/operations")
   }
 
@@ -257,14 +259,17 @@ export default function NewJobPage() {
     <div className="mx-auto w-full max-w-[1100px] space-y-6 p-4 lg:p-6">
       <div className="flex items-center gap-3">
         <Link href="/operations">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label={t.common.back}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
+
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">New Job</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t.jobs.newJob}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create a new vehicle service job.
+            {t.jobs.createDescription}
           </p>
         </div>
       </div>
@@ -274,59 +279,78 @@ export default function NewJobPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Car className="h-4 w-4 text-blue-600" />
-              Vehicle
+              {t.common.vehicle}
             </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Existing vehicle (optional)</Label>
-              <Select value={existingVehicleId} onValueChange={handleSelectExistingVehicle}>
+              <Label>{t.auth.existingVehicleOptional}</Label>
+
+              <Select
+                value={existingVehicleId}
+                onValueChange={handleSelectExistingVehicle}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Search or select a registered vehicle" />
+                  <SelectValue placeholder={t.jobs.searchRegisteredVehicle} />
                 </SelectTrigger>
+
                 <SelectContent>
                   {vehicles.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
-                      {v.plate_number} — {[v.make, v.model].filter(Boolean).join(" ") || "Unnamed"}
+                      {v.plate_number} —{" "}
+                      {[v.make, v.model].filter(Boolean).join(" ") ||
+                        t.jobs.unnamed}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
               <p className="text-xs text-muted-foreground">
-                Leave blank for a walk-in — you can still fill in the fields below manually.
+                {t.jobs.walkInDescription}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Plate Number</Label>
-              <Input value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} />
+              <Label>{t.auth.plateNumber}</Label>
+              <Input
+                value={plateNumber}
+                onChange={(e) => setPlateNumber(e.target.value)}
+              />
             </div>
+
             <div className="space-y-2">
-              <Label>Vehicle (make/model)</Label>
+              <Label>{t.auth.vehicleMakeModel}</Label>
               <Input
                 value={carModel}
                 onChange={(e) => setCarModel(e.target.value)}
-                placeholder="e.g. Toyota Camry"
+                placeholder={t.jobs.vehicleExample}
               />
             </div>
+
             <div className="space-y-2">
-              <Label>Color</Label>
-              <Input value={carColor} onChange={(e) => setCarColor(e.target.value)} />
+              <Label>{t.jobs.color}</Label>
+              <Input
+                value={carColor}
+                onChange={(e) => setCarColor(e.target.value)}
+              />
             </div>
+
             <div className="space-y-2">
-              <Label>Customer Name</Label>
+              <Label>{t.auth.customerName}</Label>
               <Input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Optional"
+                placeholder={t.common.optional}
               />
             </div>
+
             <div className="space-y-2">
-              <Label>Customer Phone</Label>
+              <Label>{t.auth.customerPhone}</Label>
               <Input
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="Optional"
+                placeholder={t.common.optional}
               />
             </div>
           </CardContent>
@@ -336,29 +360,41 @@ export default function NewJobPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Check className="h-4 w-4 text-blue-600" />
-              Services
+              {t.common.services}
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Select one or more services.</p>
+
+            <p className="text-xs text-muted-foreground">
+              {t.jobs.selectServices}
+            </p>
           </CardHeader>
+
           <CardContent className="space-y-3">
             {loadingData && (
-              <p className="text-sm text-muted-foreground">Loading services...</p>
-            )}
-            {!loadingData && services.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No active services yet — add some on the Services page first.
+                {t.jobs.loadingServices}
               </p>
             )}
+
+            {!loadingData && services.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {t.jobs.noActiveServices}
+              </p>
+            )}
+
             {services.map((service) => {
               const selected = isSelected(service.id)
-              const selectedData = selectedServices.find((s) => s.serviceId === service.id)
+              const selectedData = selectedServices.find(
+                (s) => s.serviceId === service.id
+              )
               const price = toNumber(service.price)
 
               return (
                 <div
                   key={service.id}
                   className={`rounded-lg border transition ${
-                    selected ? "border-blue-500 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/20" : ""
+                    selected
+                      ? "border-blue-500 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/20"
+                      : ""
                   }`}
                 >
                   <button
@@ -368,16 +404,22 @@ export default function NewJobPage() {
                   >
                     <div>
                       <p className="font-medium">{service.name}</p>
+
                       <p className="mt-1 text-xs text-muted-foreground">
                         {service.pricing_type === "custom"
-                          ? "Custom price"
+                          ? t.jobs.customPrice
                           : service.pricing_type === "quantity"
-                          ? `${price} LYD / ${service.unit_name || "unit"}`
-                          : `${price} LYD`}
+                            ? `${price} LYD / ${
+                                service.unit_name || t.jobs.unit
+                              }`
+                            : `${price} LYD`}
                       </p>
                     </div>
+
                     {selected ? (
-                      <Badge className="bg-blue-600">Selected</Badge>
+                      <Badge className="bg-blue-600">
+                        {t.common.selected}
+                      </Badge>
                     ) : (
                       <Plus className="h-4 w-4 text-muted-foreground" />
                     )}
@@ -385,7 +427,11 @@ export default function NewJobPage() {
 
                   {selected && service.pricing_type === "quantity" && (
                     <div className="flex items-center gap-2 border-t px-4 py-3">
-                      <Label className="text-xs">Quantity ({service.unit_name || "unit"})</Label>
+                      <Label className="text-xs">
+                        {t.jobs.quantity} (
+                        {service.unit_name || t.jobs.unit})
+                      </Label>
+
                       <Input
                         type="number"
                         min="0"
@@ -393,7 +439,9 @@ export default function NewJobPage() {
                         className="h-8 w-24"
                         value={selectedData?.quantity ?? 1}
                         onChange={(e) =>
-                          updateSelectedService(service.id, { quantity: Number(e.target.value) })
+                          updateSelectedService(service.id, {
+                            quantity: Number(e.target.value),
+                          })
                         }
                       />
                     </div>
@@ -401,14 +449,19 @@ export default function NewJobPage() {
 
                   {selected && service.pricing_type === "custom" && (
                     <div className="flex items-center gap-2 border-t px-4 py-3">
-                      <Label className="text-xs">Price (LYD)</Label>
+                      <Label className="text-xs">
+                        {t.common.price} (LYD)
+                      </Label>
+
                       <Input
                         type="number"
                         min="0"
                         className="h-8 w-28"
                         value={selectedData?.customPrice ?? ""}
                         onChange={(e) =>
-                          updateSelectedService(service.id, { customPrice: e.target.value })
+                          updateSelectedService(service.id, {
+                            customPrice: e.target.value,
+                          })
                         }
                       />
                     </div>
@@ -421,15 +474,23 @@ export default function NewJobPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Job Details</CardTitle>
+            <CardTitle className="text-base">
+              {t.jobs.jobDetails}
+            </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Worker</Label>
-              <Select value={workerId} onValueChange={(value) => setWorkerId(value ?? "")}>
+              <Label>{t.common.worker}</Label>
+
+              <Select
+                value={workerId}
+                onValueChange={(value) => setWorkerId(value ?? "")}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Unassigned" />
+                  <SelectValue placeholder={t.jobs.unassigned} />
                 </SelectTrigger>
+
                 <SelectContent>
                   {workers.map((w) => (
                     <SelectItem key={w.id} value={w.id}>
@@ -439,13 +500,22 @@ export default function NewJobPage() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
-              <Label>Position / Spot</Label>
-              <Input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Optional" />
+              <Label>{t.common.positionSpot}</Label>
+              <Input
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder={t.common.optional}
+              />
             </div>
+
             <div className="space-y-2">
-              <Label>Special Instructions</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Label>{t.common.specialInstructions}</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
@@ -454,27 +524,39 @@ export default function NewJobPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <UserRound className="h-4 w-4 text-blue-600" />
-              Summary
+              {t.jobs.summary}
             </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Services</span>
+                <span className="text-muted-foreground">
+                  {t.common.services}
+                </span>
                 <span>{selectedServices.length}</span>
               </div>
 
               {selectedWithDetails.map(({ service, total }) => (
-                <div key={service.id} className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">{service.name}</span>
+                <div
+                  key={service.id}
+                  className="flex justify-between gap-4"
+                >
+                  <span className="text-muted-foreground">
+                    {service.name}
+                  </span>
                   <span>{total.toFixed(2)} LYD</span>
                 </div>
               ))}
 
               <div className="border-t pt-3">
                 <div className="flex justify-between">
-                  <span className="font-medium">Total</span>
-                  <span className="text-lg font-semibold">{grandTotal.toFixed(2)} LYD</span>
+                  <span className="font-medium">
+                    {t.common.total}
+                  </span>
+                  <span className="text-lg font-semibold">
+                    {grandTotal.toFixed(2)} LYD
+                  </span>
                 </div>
               </div>
             </div>
@@ -484,7 +566,7 @@ export default function NewJobPage() {
               disabled={selectedServices.length === 0 || saving}
               className="mt-6 w-full"
             >
-              {saving ? "Creating..." : "Create Job"}
+              {saving ? t.jobs.creating : t.jobs.createJob}
             </Button>
           </CardContent>
         </Card>

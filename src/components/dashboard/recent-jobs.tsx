@@ -45,21 +45,21 @@ function getStatusVariant(status: RecentJob["status"]) {
 
 export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card size="sm" className="premium-hover">
+      <CardHeader className="flex flex-row items-center justify-between px-4 py-4 sm:px-5">
         <div>
-          <CardTitle className="text-base">
+          <CardTitle className="text-[15px] font-semibold">
             Today's Operations
           </CardTitle>
 
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             Current vehicle activity
           </p>
         </div>
 
         <Link
           href="/operations"
-          className="text-xs font-medium text-blue-600 hover:underline"
+          className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
         >
           View all
         </Link>
@@ -67,46 +67,49 @@ export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
 
       <CardContent className="p-0">
         {jobs.length === 0 ? (
-          <div className="px-6 py-10 text-center">
-            <p className="text-sm font-medium">
-              No jobs today
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              New jobs will appear here as they are created.
-            </p>
+          <div className="flex min-h-[150px] items-center justify-center px-4 py-6 sm:px-5">
+            <div className="max-w-xs text-center">
+              <p className="text-sm font-semibold">No jobs today</p>
+              <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                New jobs will appear here as they are created.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-border/70">
             {jobs.map((job) => (
               <div
                 key={job.id}
-                className="flex items-center gap-4 px-6 py-4"
+                className="flex items-center gap-3 px-4 py-3 sm:px-5"
               >
-                <div className="hidden w-12 text-xs font-medium text-muted-foreground sm:block">
+                <div className="hidden w-11 shrink-0 text-[11px] font-semibold text-muted-foreground sm:block">
                   {job.id}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
+                  <p className="truncate text-[13px] font-semibold">
                     {job.vehicle}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {job.plate} - {job.service}
+                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                    {job.plate} · {job.service}
                   </p>
                 </div>
 
-                <div className="hidden text-right md:block">
-                  <p className="text-xs font-medium">
+                <div className="hidden shrink-0 text-right md:block">
+                  <p className="max-w-[110px] truncate text-[11px] font-semibold">
                     {job.worker}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
                     {job.time}
                   </p>
                 </div>
 
-                <Badge variant={getStatusVariant(job.status) as any}>
+                <Badge
+                  variant={getStatusVariant(job.status) as any}
+                  className="shrink-0 text-[10px]"
+                >
                   {formatStatus(job.status)}
                 </Badge>
               </div>

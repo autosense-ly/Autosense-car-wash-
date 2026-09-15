@@ -7,12 +7,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useLanguage } from '@/lib/i18n/language-provider'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const { t } = useLanguage()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -46,36 +48,39 @@ export default function LoginPage() {
           <div>
             <p className="text-sm font-semibold leading-none">AF Car Wash</p>
             <p className="text-xs text-muted-foreground">
-              Car Wash Management
+              {t.auth.carWashManagementTitle}
             </p>
           </div>
         </div>
 
         <div className="max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Run the whole wash from one screen.
+            {t.auth.loginHeadline}
           </h1>
 
           <p className="mt-4 text-muted-foreground">
-            Jobs, payments, and your team — tracked in real time, from check-in
-            to completed.
+            {t.auth.loginDescription}
           </p>
         </div>
 
-        <p className="text-xs text-muted-foreground">© 2026 AF Car Wash</p>
+        <p className="text-xs text-muted-foreground">
+          © 2026 AF Car Wash
+        </p>
       </div>
 
       <div className="flex w-[55%] items-center justify-center px-16">
         <div className="w-full max-w-sm">
-          <h2 className="text-2xl font-semibold">Welcome back</h2>
+          <h2 className="text-2xl font-semibold">
+            {t.auth.welcomeBack}
+          </h2>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your business account.
+            {t.auth.signInToBusiness}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.common.email}</Label>
 
               <Input
                 id="email"
@@ -88,7 +93,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.common.password}</Label>
 
               <Input
                 id="password"
@@ -106,15 +111,22 @@ export default function LoginPage() {
               </p>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Signing in...' : 'Sign in'}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? t.auth.signingIn : t.auth.signIn}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don&apos;t have a business account?{' '}
-            <Link href="/signup" className="text-primary hover:underline">
-              Create one
+            {t.auth.noBusinessAccount}{' '}
+            <Link
+              href="/signup"
+              className="text-primary hover:underline"
+            >
+              {t.auth.createOne}
             </Link>
           </p>
         </div>

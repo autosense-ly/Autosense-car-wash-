@@ -10,6 +10,7 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
 
 type TopbarProps = {
   onMenuClick: () => void
@@ -18,6 +19,8 @@ type TopbarProps = {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
+  const { language, setLanguage, t } = useLanguage()
+
   const [profile, setProfile] = useState<{
     name: string
     role: string
@@ -57,56 +60,69 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         .toUpperCase()
     : "?"
 
+  const nextLanguage = language === "en" ? "ar" : "en"
+
   return (
-    <header className="sticky top-0 z-30 flex h-[68px] shrink-0 items-center border-b border-border/70 bg-background/95 px-5 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:px-7">
+    <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center border-b border-border/70 bg-background/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 sm:px-6 lg:px-8">
       <Button
         variant="ghost"
         size="icon"
-        className="shrink-0 lg:hidden"
+        className="h-10 w-10 rounded-xl lg:hidden"
         onClick={onMenuClick}
-        aria-label="Open navigation"
-        title="Open navigation"
+        aria-label={t.common.openNavigation}
+        title={t.common.openNavigation}
       >
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="ml-3">
-        <p className="text-sm font-medium text-foreground">
-          Welcome back
+      <div className="ml-2 sm:ml-3">
+        <p className="text-[13px] font-semibold tracking-tight text-foreground sm:text-sm">
+          {t.auth.welcomeBack}
         </p>
         <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">
-          Manage your car wash operations
+          {t.common.carWashManagementLower}
         </p>
       </div>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          className="h-10 min-w-[48px] rounded-xl px-2.5 text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground"
+          onClick={() => setLanguage(nextLanguage)}
+          aria-label={language === "en" ? t.common.switchToArabic : t.common.switchToEnglish}
+          title={language === "en" ? t.common.switchToArabic : t.common.switchToEnglish}
+        >
+          {language === "en" ? "العربية" : "EN"}
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground"
+          className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
           onClick={() =>
             setTheme(theme === "dark" ? "light" : "dark")
           }
-          aria-label="Toggle theme"
+          aria-label={t.common.toggleTheme}
+          title={t.common.toggleTheme}
         >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className="h-[17px] w-[17px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[17px] w-[17px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </Button>
 
-        <div className="mx-2 hidden h-7 w-px bg-border sm:block" />
+        <div className="mx-1 hidden h-8 w-px bg-border sm:block" />
 
-        <div className="flex items-center gap-3 pl-1">
-          <Avatar className="h-9 w-9 border border-border">
-            <AvatarFallback className="bg-blue-600 text-xs font-semibold text-white">
+        <div className="flex items-center gap-2.5 rounded-xl px-1.5 py-1">
+          <Avatar className="h-9 w-9 border border-border shadow-sm">
+            <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
               {initials}
             </AvatarFallback>
           </Avatar>
 
           <div className="hidden min-w-0 sm:block">
-            <p className="max-w-[180px] truncate text-sm font-medium leading-tight">
-              {profile?.name ?? "Loading..."}
+            <p className="max-w-[180px] truncate text-[13px] font-semibold leading-tight">
+              {profile?.name ?? t.common.loading}
             </p>
-            <p className="mt-1 text-[11px] capitalize text-muted-foreground">
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
               {profile?.role ?? ""}
             </p>
           </div>
@@ -115,12 +131,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="ml-1 h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive"
+          className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           onClick={handleSignOut}
-          aria-label="Sign out"
-          title="Sign out"
+          aria-label={t.common.signOut}
+          title={t.common.signOut}
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-[17px] w-[17px]" />
         </Button>
       </div>
     </header>

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
 
 type JobStatus =
   | "waiting"
@@ -64,21 +65,6 @@ function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(number) ? number : 0
 }
 
-function formatStatus(status: JobStatus) {
-  switch (status) {
-    case "in_progress":
-      return "In Progress"
-    case "waiting":
-      return "Waiting"
-    case "ready":
-      return "Ready"
-    case "completed":
-      return "Completed"
-    case "cancelled":
-      return "Cancelled"
-  }
-}
-
 function getPaymentStatus(
   total: number,
   paid: number,
@@ -117,10 +103,34 @@ function getPaymentClass(
 }
 
 export default function JobsPage() {
+  const { language, t } = useLanguage()
+
   const [jobs, setJobs] = useState<JobRow[]>([])
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
+
+  const isArabic = language === "ar"
+
+  const formatStatus = (status: JobStatus) => {
+    const labels: Record<JobStatus, string> = isArabic
+      ? {
+          waiting: "في الانتظار",
+          in_progress: "قيد التنفيذ",
+          ready: "جاهز",
+          completed: "مكتمل",
+          cancelled: "ملغى",
+        }
+      : {
+          waiting: "Waiting",
+          in_progress: "In Progress",
+          ready: "Ready",
+          completed: "Completed",
+          cancelled: "Cancelled",
+        }
+
+    return labels[status]
+  }
 
   async function loadJobs() {
     setLoading(true)
@@ -132,7 +142,7 @@ export default function JobsPage() {
         await supabase.auth.getUser()
 
       if (authError || !authData.user) {
-        throw new Error("You are not logged in")
+        throw new Error(t.jobs.notLoggedIn)
       }
 
       const { data: profile, error: profileError } = await supabase
@@ -142,7 +152,7 @@ export default function JobsPage() {
         .single()
 
       if (profileError || !profile) {
-        throw new Error("Couldn't find your business profile")
+        throw new Error(t.jobs.businessNotFound)
       }
 
       const [jobsResult, paymentsResult] = await Promise.all([
@@ -162,13 +172,13 @@ export default function JobsPage() {
 
       if (jobsResult.error) {
         throw new Error(
-          `Couldn't load jobs: ${jobsResult.error.message}`,
+          `${t.jobs.loadFailed}: ${jobsResult.error.message}`,
         )
       }
 
       if (paymentsResult.error) {
         throw new Error(
-          `Couldn't load payments: ${paymentsResult.error.message}`,
+          `${t.jobs.paymentsLoadFailed}: ${paymentsResult.error.message}`,
         )
       }
 
@@ -176,7 +186,7 @@ export default function JobsPage() {
       setPayments((paymentsResult.data as PaymentRow[]) ?? [])
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Couldn't load jobs"
+        error instanceof Error ? error.message : t.jobs.loadFailed
 
       toast.error(message)
     } finally {
@@ -228,7 +238,7 @@ export default function JobsPage() {
         .toLowerCase()
         .includes(query)
     })
-  }, [jobs, search])
+  }, [jobs, search, language])
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
@@ -236,20 +246,20 @@ export default function JobsPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-600 dark:text-blue-400">
-              Operations
+              {t.common.operations}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-[28px]">
-              Jobs
+              {t.common.jobs}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Search and manage every vehicle service job.
+              {t.jobs.searchManageDescription}
             </p>
           </div>
 
           <Link href="/jobs/new">
             <Button className="w-full gap-2 rounded-xl bg-blue-600 px-5 shadow-sm hover:bg-blue-700 sm:w-auto">
               <Plus className="h-4 w-4" />
-              New Job
+              {t.jobs.newJob}
             </Button>
           </Link>
         </section>
@@ -258,22 +268,30 @@ export default function JobsPage() {
           <CardHeader className="flex flex-col gap-4 border-b border-border/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
               <CardTitle className="text-base font-semibold">
-                All Jobs
+                {t.jobs.allJobs}
               </CardTitle>
               {!loading && (
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {filteredJobs.length}{" "}
-                  {filteredJobs.length === 1 ? "job" : "jobs"}
-                  {search ? " found" : ""}
+                  {filteredJobs.length === 1
+                    ? t.jobs.jobSingular
+                    : t.jobs.jobPlural}
+                  {search ? ` ${t.jobs.found}` : ""}
                 </p>
               )}
             </div>
 
             <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground ${
+                  isArabic ? "right-3" : "left-3"
+                }`}
+              />
               <Input
-                placeholder="Search jobs..."
-                className="h-10 rounded-xl border-border/80 bg-background pl-9"
+                placeholder={t.jobs.searchJobs}
+                className={`h-10 rounded-xl border-border/80 bg-background ${
+                  isArabic ? "pr-9" : "pl-9"
+                }`}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -283,8 +301,12 @@ export default function JobsPage() {
           <CardContent className="p-0">
             {loading ? (
               <div className="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Loading jobs...
+                <Loader2
+                  className={`h-5 w-5 animate-spin ${
+                    isArabic ? "ml-2" : "mr-2"
+                  }`}
+                />
+                {t.jobs.loadingJobs}
               </div>
             ) : filteredJobs.length === 0 ? (
               <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
@@ -293,20 +315,24 @@ export default function JobsPage() {
                 </div>
 
                 <p className="mt-4 font-semibold">
-                  {search ? "No matching jobs" : "No jobs yet"}
+                  {search ? t.jobs.noMatchingJobs : t.jobs.noJobsYet}
                 </p>
 
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                   {search
-                    ? "Try a different search."
-                    : "Create your first job to see it here."}
+                    ? t.jobs.tryDifferentSearch
+                    : t.jobs.createFirstJob}
                 </p>
 
                 {!search && (
                   <Link href="/jobs/new">
                     <Button className="mt-4 rounded-xl bg-blue-600 hover:bg-blue-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Job
+                      <Plus
+                        className={`h-4 w-4 ${
+                          isArabic ? "ml-2" : "mr-2"
+                        }`}
+                      />
+                      {t.jobs.createJob}
                     </Button>
                   </Link>
                 )}
@@ -315,14 +341,14 @@ export default function JobsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[900px] text-sm">
                   <thead>
-                    <tr className="border-b border-border/60 bg-muted/30 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                      <th className="px-5 py-3.5">Job</th>
-                      <th className="px-4 py-3.5">Customer</th>
-                      <th className="px-4 py-3.5">Vehicle</th>
-                      <th className="px-4 py-3.5">Service</th>
-                      <th className="px-4 py-3.5">Total</th>
-                      <th className="px-4 py-3.5">Status</th>
-                      <th className="px-4 py-3.5 text-right"></th>
+                    <tr className="border-b border-border/60 bg-muted/30 text-start text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                      <th className="px-5 py-3.5">{t.common.job}</th>
+                      <th className="px-4 py-3.5">{t.common.customer}</th>
+                      <th className="px-4 py-3.5">{t.common.vehicle}</th>
+                      <th className="px-4 py-3.5">{t.common.service}</th>
+                      <th className="px-4 py-3.5">{t.common.total}</th>
+                      <th className="px-4 py-3.5">{t.common.status}</th>
+                      <th className="px-4 py-3.5 text-end"></th>
                     </tr>
                   </thead>
 
@@ -357,7 +383,8 @@ export default function JobsPage() {
 
                               <div className="min-w-0">
                                 <p className="truncate font-medium">
-                                  {job.customer_name || "Walk-in"}
+                                  {job.customer_name ||
+                                    t.jobs.walkIn}
                                 </p>
                                 {job.customer_phone && (
                                   <p className="text-xs text-muted-foreground">
@@ -374,10 +401,12 @@ export default function JobsPage() {
                               className="block rounded-lg transition-colors hover:text-blue-600 dark:hover:text-blue-400"
                             >
                               <p className="font-medium">
-                                {job.car_model || "Unnamed vehicle"}
+                                {job.car_model ||
+                                  t.jobs.unnamedVehicle}
                               </p>
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                {job.plate_number || "No plate"}
+                                {job.plate_number ||
+                                  t.jobs.noPlate}
                               </p>
                             </Link>
                           </td>
@@ -389,8 +418,8 @@ export default function JobsPage() {
                                 : job.job_services?.length
                                   ? `${job.job_services[0].service_name} + ${
                                       job.job_services.length - 1
-                                    } more`
-                                  : "No service"}
+                                    } ${t.jobs.more}`
+                                  : t.jobs.noService}
                             </p>
                           </td>
 
@@ -406,10 +435,10 @@ export default function JobsPage() {
                               )}`}
                             >
                               {paymentStatus === "paid"
-                                ? "Paid"
+                                ? t.jobs.paid
                                 : paymentStatus === "partial"
-                                  ? `${paid.toFixed(2)} paid`
-                                  : "Unpaid"}
+                                  ? `${paid.toFixed(2)} ${t.jobs.paid.toLowerCase()}`
+                                  : t.jobs.unpaid}
                             </Badge>
                           </td>
 
@@ -424,7 +453,7 @@ export default function JobsPage() {
                             </Badge>
                           </td>
 
-                          <td className="px-4 py-4 text-right align-middle">
+                          <td className="px-4 py-4 text-end align-middle">
                             <Link href={`/jobs/${job.id}`}>
                               <Button
                                 variant="ghost"
@@ -433,7 +462,7 @@ export default function JobsPage() {
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">
-                                  Open job
+                                  {t.jobs.openJob}
                                 </span>
                               </Button>
                             </Link>

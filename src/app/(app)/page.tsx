@@ -13,9 +13,17 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { StatCard } from "@/components/dashboard/stat-card"
-import { RecentJobs, type RecentJob } from "@/components/dashboard/recent-jobs"
+import {
+  RecentJobs,
+  type RecentJob,
+} from "@/components/dashboard/recent-jobs"
 import {
   ServiceBreakdown,
   type ServiceBreakdownItem,
@@ -134,7 +142,10 @@ function getDateRange() {
   previousDate.setUTCDate(previousDate.getUTCDate() - 1)
 
   const previousYear = previousDate.getUTCFullYear()
-  const previousMonth = String(previousDate.getUTCMonth() + 1).padStart(2, "0")
+  const previousMonth = String(previousDate.getUTCMonth() + 1).padStart(
+    2,
+    "0",
+  )
   const previousDay = String(previousDate.getUTCDate()).padStart(2, "0")
   const yesterday = `${previousYear}-${previousMonth}-${previousDay}`
 
@@ -189,7 +200,9 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState(0)
   const [expenseCount, setExpenseCount] = useState(0)
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([])
-  const [serviceBreakdown, setServiceBreakdown] = useState<ServiceBreakdownItem[]>([])
+  const [serviceBreakdown, setServiceBreakdown] = useState<
+    ServiceBreakdownItem[]
+  >([])
 
   async function loadDashboard() {
     setLoading(true)
@@ -197,7 +210,8 @@ export default function DashboardPage() {
     try {
       const supabase = createClient()
 
-      const { data: authData, error: authError } = await supabase.auth.getUser()
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser()
 
       if (authError || !authData.user) {
         throw new Error("You are not logged in")
@@ -264,11 +278,15 @@ export default function DashboardPage() {
       ])
 
       if (todayJobsResult.error) {
-        throw new Error(`Couldn't load today's jobs: ${todayJobsResult.error.message}`)
+        throw new Error(
+          `Couldn't load today's jobs: ${todayJobsResult.error.message}`,
+        )
       }
 
       if (yesterdayJobsResult.error) {
-        throw new Error(`Couldn't load yesterday's jobs: ${yesterdayJobsResult.error.message}`)
+        throw new Error(
+          `Couldn't load yesterday's jobs: ${yesterdayJobsResult.error.message}`,
+        )
       }
 
       if (todayPaymentsResult.error) {
@@ -291,11 +309,16 @@ export default function DashboardPage() {
 
       const todayJobs =
         (todayJobsResult.data as unknown as DashboardJob[]) ?? []
+
       const yesterdayJobs =
-        (yesterdayJobsResult.data as { id: string; status: JobStatus }[]) ?? []
+        (yesterdayJobsResult.data as {
+          id: string
+          status: JobStatus
+        }[]) ?? []
 
       const todayPayments =
         (todayPaymentsResult.data as Payment[]) ?? []
+
       const yesterdayPayments =
         (yesterdayPaymentsResult.data as Payment[]) ?? []
 
@@ -329,15 +352,19 @@ export default function DashboardPage() {
       setYesterdayRevenue(yesterdayRevenueValue)
       setCarsToday(todayJobs.length)
       setYesterdayCars(yesterdayJobs.length)
+
       setInProgress(
         todayJobs.filter((job) => job.status === "in_progress").length,
       )
+
       setCompleted(
         todayJobs.filter((job) => job.status === "completed").length,
       )
+
       setYesterdayCompleted(
         yesterdayJobs.filter((job) => job.status === "completed").length,
       )
+
       setCash(cashValue)
       setBankTransfer(bankValue)
       setExpenses(expenseValue)
@@ -349,8 +376,9 @@ export default function DashboardPage() {
           vehicle: job.car_model || "Unnamed vehicle",
           plate: job.plate_number || "No plate",
           service:
-            job.job_services?.map((service) => service.service_name).join(" + ") ||
-            "No services",
+            job.job_services
+              ?.map((service) => service.service_name)
+              .join(" + ") || "No services",
           worker: job.assigned_worker?.name || "Unassigned",
           status: job.status,
           time: new Date(job.created_at).toLocaleTimeString([], {
@@ -409,7 +437,10 @@ export default function DashboardPage() {
       )
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Couldn't load dashboard"
+        error instanceof Error
+          ? error.message
+          : "Couldn't load dashboard"
+
       toast.error(message)
     } finally {
       setLoading(false)
@@ -426,179 +457,196 @@ export default function DashboardPage() {
   const estimatedNet = revenue - expenses
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 lg:p-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <p className="text-sm font-medium text-blue-600">
-            {loading ? "Loading..." : dashboardDate}
-          </p>
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="space-y-6">
+        <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+              {loading ? "Loading dashboard" : dashboardDate}
+            </p>
 
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {getGreeting()}, {userName}
-          </h1>
+            <h1 className="mt-2 text-[25px] font-semibold tracking-[-0.035em] sm:text-[30px]">
+              {getGreeting()}, {userName}
+            </h1>
 
-          <p className="mt-1 text-sm text-muted-foreground">
-            Here's what's happening at your car wash today.
-          </p>
-        </div>
-
-        <Link href="/jobs/new">
-          <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4" />
-            New Job
-          </Button>
-        </Link>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Loading dashboard...
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard
-              title="Today's Revenue"
-              value={formatMoney(revenue)}
-              subtitle="vs yesterday"
-              trend={revenueTrend.value}
-              trendType={revenueTrend.type}
-              icon={CircleDollarSign}
-            />
-
-            <StatCard
-              title="Cars Today"
-              value={String(carsToday)}
-              subtitle="completed & active"
-              trend={carsTrend.value}
-              trendType={carsTrend.type}
-              icon={Car}
-            />
-
-            <StatCard
-              title="In Progress"
-              value={String(inProgress)}
-              subtitle="vehicles being serviced"
-              icon={Clock3}
-            />
-
-            <StatCard
-              title="Completed"
-              value={String(completed)}
-              subtitle="jobs completed today"
-              trend={completedTrend.value}
-              trendType={completedTrend.type}
-              icon={ClipboardCheck}
-            />
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Here's what's happening at your car wash today.
+            </p>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-3">
-            <div className="xl:col-span-2">
-              <RecentJobs jobs={recentJobs} />
-            </div>
+          <Link href="/jobs/new" className="shrink-0">
+            <Button className="h-10 gap-2 rounded-xl px-4 shadow-sm">
+              <Plus className="h-4 w-4" />
+              New Job
+            </Button>
+          </Link>
+        </section>
 
-            <ServiceBreakdown services={serviceBreakdown} />
+        {loading ? (
+          <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-border/70 bg-card text-muted-foreground shadow-sm">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Loading dashboard...
           </div>
+        ) : (
+          <>
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                title="Today's Revenue"
+                value={formatMoney(revenue)}
+                subtitle="vs yesterday"
+                trend={revenueTrend.value}
+                trendType={revenueTrend.type}
+                icon={CircleDollarSign}
+              />
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Cash Position
-                </CardTitle>
-              </CardHeader>
+              <StatCard
+                title="Cars Today"
+                value={String(carsToday)}
+                subtitle="completed & active"
+                trend={carsTrend.value}
+                trendType={carsTrend.type}
+                icon={Car}
+              />
 
-              <CardContent>
-                <p className="text-2xl font-semibold">
-                  {formatMoney(cash)}
-                </p>
+              <StatCard
+                title="In Progress"
+                value={String(inProgress)}
+                subtitle="vehicles being serviced"
+                icon={Clock3}
+              />
 
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Expected cash collected today
-                </p>
+              <StatCard
+                title="Completed"
+                value={String(completed)}
+                subtitle="jobs completed today"
+                trend={completedTrend.value}
+                trendType={completedTrend.type}
+                icon={ClipboardCheck}
+              />
+            </section>
 
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-muted/60 p-3">
-                    <p className="text-xs text-muted-foreground">
-                      Cash
-                    </p>
-                    <p className="mt-1 font-semibold">
-                      {cash.toFixed(2)}
-                    </p>
-                  </div>
+            <section className="grid gap-4 xl:grid-cols-5">
+              <div className="min-w-0 xl:col-span-3">
+                <RecentJobs jobs={recentJobs} />
+              </div>
 
-                  <div className="rounded-lg bg-muted/60 p-3">
-                    <p className="text-xs text-muted-foreground">
-                      Bank Transfer
-                    </p>
-                    <p className="mt-1 font-semibold">
-                      {bankTransfer.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="min-w-0 xl:col-span-2">
+                <ServiceBreakdown services={serviceBreakdown} />
+              </div>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Today's Expenses
-                </CardTitle>
-              </CardHeader>
+            <section className="grid gap-4 lg:grid-cols-3">
+              <Card
+                size="sm"
+                className="rounded-2xl border border-border/80 bg-card shadow-sm transition-shadow duration-200 hover:shadow-md"
+              >
+                <CardHeader className="border-b border-border/60 px-5 py-4">
+                  <CardTitle className="text-[15px] font-semibold tracking-tight">
+                    Cash Position
+                  </CardTitle>
+                </CardHeader>
 
-              <CardContent>
-                <p className="text-2xl font-semibold">
-                  {formatMoney(expenses)}
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Recorded business expenses
-                </p>
-
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                    <Receipt className="h-4 w-4" />
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium">
-                      {expenseCount} {expenseCount === 1 ? "expense" : "expenses"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      recorded today
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  Estimated Net
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent>
-                <p className="text-2xl font-semibold">
-                  {formatMoney(estimatedNet)}
-                </p>
-
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Revenue minus recorded expenses
-                </p>
-
-                <div className="mt-5 rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
-                  <p className="text-xs text-blue-700 dark:text-blue-400">
-                    End-of-day reconciliation will give the final figure.
+                <CardContent className="p-5">
+                  <p className="text-[25px] font-semibold tracking-[-0.03em]">
+                    {formatMoney(cash)}
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
+
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Expected cash collected today
+                  </p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2.5">
+                    <div className="rounded-xl border border-border/60 bg-muted/40 px-3.5 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                        Cash
+                      </p>
+
+                      <p className="mt-1 text-sm font-semibold">
+                        {cash.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-border/60 bg-muted/40 px-3.5 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                        Bank Transfer
+                      </p>
+
+                      <p className="mt-1 text-sm font-semibold">
+                        {bankTransfer.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                size="sm"
+                className="rounded-2xl border border-border/80 bg-card shadow-sm transition-shadow duration-200 hover:shadow-md"
+              >
+                <CardHeader className="border-b border-border/60 px-5 py-4">
+                  <CardTitle className="text-[15px] font-semibold tracking-tight">
+                    Today's Expenses
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="p-5">
+                  <p className="text-[25px] font-semibold tracking-[-0.03em]">
+                    {formatMoney(expenses)}
+                  </p>
+
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Recorded business expenses
+                  </p>
+
+                  <div className="mt-4 flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                      <Receipt className="h-4 w-4" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold">
+                        {expenseCount}{" "}
+                        {expenseCount === 1 ? "expense" : "expenses"}
+                      </p>
+
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        recorded today
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                size="sm"
+                className="rounded-2xl border border-primary/20 bg-primary/[0.025] shadow-sm transition-shadow duration-200 hover:shadow-md dark:border-primary/25 dark:bg-primary/[0.04]"
+              >
+                <CardHeader className="border-b border-primary/10 px-5 py-4 dark:border-primary/15">
+                  <CardTitle className="text-[15px] font-semibold tracking-tight">
+                    Estimated Net
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="p-5">
+                  <p className="text-[25px] font-semibold tracking-[-0.03em]">
+                    {formatMoney(estimatedNet)}
+                  </p>
+
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Revenue minus recorded expenses
+                  </p>
+
+                  <div className="mt-4 rounded-xl border border-primary/10 bg-primary/5 px-3.5 py-3">
+                    <p className="text-[11px] leading-relaxed text-primary">
+                      End-of-day reconciliation will give the final figure.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          </>
+        )}
+      </div>
     </div>
   )
 }
