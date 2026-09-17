@@ -86,6 +86,19 @@ export const translations = {
       signIn: "Sign in",
       noBusinessAccount: "Don’t have a business account?",
       createOne: "Create one",
+      signupHeadline: "Two ways to get started.",
+      signupDescription:
+        "Set up your own business as the owner, or join one your manager already created using the Business ID they share with you.",
+      createYourBusiness: "Create your business",
+      joinYourTeam: "Join your team",
+      createBusinessDescription:
+        "Sets you up as the owner — you can invite managers after.",
+      joinBusinessDescription:
+        "Ask your business owner for the Business ID, then enter it below.",
+      pleaseWait: "Please wait...",
+      createBusiness: "Create business",
+      joinTeam: "Join team",
+      alreadyHaveAccount: "Already have an account?",
     },
 
     jobs: {
@@ -245,6 +258,19 @@ export const translations = {
       plateNumber: "رقم اللوحة",
       vehicleMakeModel: "الشركة المصنعة والطراز",
       existingVehicleOptional: "مركبة موجودة (اختياري)",
+      signupHeadline: "طريقتان للبدء.",
+      signupDescription:
+        "أنشئ نشاطك التجاري كمالك، أو انضم إلى نشاط أنشأه مديرك باستخدام معرّف النشاط التجاري الذي يشاركه معك.",
+      createYourBusiness: "إنشاء نشاطك التجاري",
+      joinYourTeam: "الانضمام إلى فريقك",
+      createBusinessDescription:
+        "سيتم إعدادك كمالك — ويمكنك دعوة المديرين لاحقًا.",
+      joinBusinessDescription:
+        "اطلب معرّف النشاط التجاري من مالك النشاط، ثم أدخله أدناه.",
+      pleaseWait: "يرجى الانتظار...",
+      createBusiness: "إنشاء النشاط التجاري",
+      joinTeam: "الانضمام إلى الفريق",
+      alreadyHaveAccount: "لديك حساب بالفعل؟",
     },
 
     jobs: {

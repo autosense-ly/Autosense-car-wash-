@@ -3,15 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Car } from 'lucide-react'
+import { Car, Languages } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useLanguage } from '@/lib/i18n/language-provider'
 
 export default function SignupPage() {
   const router = useRouter()
+  const { language, setLanguage, t } = useLanguage()
+
   const [mode, setMode] = useState<'owner' | 'manager'>('owner')
 
   // Owner fields
@@ -35,10 +38,11 @@ export default function SignupPage() {
 
     const supabase = createClient()
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
+    const { data: signUpData, error: signUpError } =
+      await supabase.auth.signUp({
+        email,
+        password,
+      })
 
     if (signUpError) {
       setLoading(false)
@@ -48,7 +52,9 @@ export default function SignupPage() {
 
     if (!signUpData.session) {
       setLoading(false)
-      setError('Account created, but no active session — check that "Confirm email" is turned off in Supabase.')
+      setError(
+        'Account created, but no active session — check that "Confirm email" is turned off in Supabase.'
+      )
       return
     }
 
@@ -77,57 +83,106 @@ export default function SignupPage() {
     router.refresh()
   }
 
+  function toggleLanguage() {
+    setLanguage(language === 'en' ? 'ar' : 'en')
+  }
+
   return (
-    <div className="dark flex min-h-screen w-full bg-background text-foreground">
-      {/* Left panel — brand side, matches /login */}
+    <div className="dark relative flex min-h-screen w-full bg-background text-foreground">
+      {/* Language switcher */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={toggleLanguage}
+        className="absolute end-6 top-6 z-20 gap-2 rounded-xl border-border bg-card/80 px-3 backdrop-blur-sm"
+        aria-label={
+          language === 'en'
+            ? t.common.switchToArabic
+            : t.common.switchToEnglish
+        }
+        title={
+          language === 'en'
+            ? t.common.switchToArabic
+            : t.common.switchToEnglish
+        }
+      >
+        <Languages className="h-4 w-4" />
+        <span>{language === 'en' ? 'العربية' : 'EN'}</span>
+      </Button>
+
+      {/* Brand panel */}
       <div className="flex w-[45%] flex-col justify-between border-r border-border bg-sidebar px-16 py-12">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
             <Car className="h-5 w-5 text-primary-foreground" />
           </div>
+
           <div>
-            <p className="text-sm font-semibold leading-none">AF Car Wash</p>
-            <p className="text-xs text-muted-foreground">Car Wash Management</p>
+            <p className="text-sm font-semibold leading-none">
+              AF Car Wash
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t.common.carWashManagement}
+            </p>
           </div>
         </div>
 
         <div className="max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Two ways to get started.
+            {t.auth.signupHeadline}
           </h1>
+
           <p className="mt-4 text-muted-foreground">
-            Set up your own business as the owner, or join one your manager already
-            created using the Business ID they share with you.
+            {t.auth.signupDescription}
           </p>
         </div>
 
-        <p className="text-xs text-muted-foreground">© 2026 AF Car Wash</p>
+        <p className="text-xs text-muted-foreground">
+          {t.branding.copyright}
+        </p>
       </div>
 
-      {/* Right panel — form */}
+      {/* Signup form */}
       <div className="flex w-[55%] items-center justify-center px-16">
         <div className="w-full max-w-sm">
-          <Tabs value={mode} onValueChange={(v) => setMode(v as 'owner' | 'manager')}>
+          <Tabs
+            value={mode}
+            onValueChange={(value) =>
+              setMode(value as 'owner' | 'manager')
+            }
+          >
             <TabsList className="w-full">
-              <TabsTrigger value="owner" className="flex-1">Start a Business</TabsTrigger>
-              <TabsTrigger value="manager" className="flex-1">Join a Business</TabsTrigger>
+              <TabsTrigger value="owner" className="flex-1">
+                {t.auth.startBusiness}
+              </TabsTrigger>
+
+              <TabsTrigger value="manager" className="flex-1">
+                {t.auth.joinBusiness}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <h2 className="mt-6 text-2xl font-semibold">
-            {mode === 'owner' ? 'Create your business' : 'Join your team'}
+            {mode === 'owner'
+              ? t.auth.createYourBusiness
+              : t.auth.joinYourTeam}
           </h2>
+
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === 'owner'
-              ? 'Sets you up as the owner — you can invite managers after.'
-              : "Ask your business owner for the Business ID, then enter it below."}
+              ? t.auth.createBusinessDescription
+              : t.auth.joinBusinessDescription}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {mode === 'owner' ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="businessName">Business name</Label>
+                  <Label htmlFor="businessName">
+                    {t.common.businessName}
+                  </Label>
+
                   <Input
                     id="businessName"
                     required
@@ -136,8 +191,12 @@ export default function SignupPage() {
                     className="bg-card"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="ownerName">Your name</Label>
+                  <Label htmlFor="ownerName">
+                    {t.auth.yourName}
+                  </Label>
+
                   <Input
                     id="ownerName"
                     required
@@ -150,7 +209,10 @@ export default function SignupPage() {
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="businessId">Business ID</Label>
+                  <Label htmlFor="businessId">
+                    {t.common.businessId}
+                  </Label>
+
                   <Input
                     id="businessId"
                     required
@@ -160,8 +222,12 @@ export default function SignupPage() {
                     className="bg-card"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="managerName">Your name</Label>
+                  <Label htmlFor="managerName">
+                    {t.auth.yourName}
+                  </Label>
+
                   <Input
                     id="managerName"
                     required
@@ -174,7 +240,10 @@ export default function SignupPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">
+                {t.common.email}
+              </Label>
+
               <Input
                 id="email"
                 type="email"
@@ -186,7 +255,10 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">
+                {t.common.password}
+              </Label>
+
               <Input
                 id="password"
                 type="password"
@@ -204,15 +276,26 @@ export default function SignupPage() {
               </p>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Please wait...' : mode === 'owner' ? 'Create business' : 'Join team'}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full"
+            >
+              {loading
+                ? t.auth.pleaseWait
+                : mode === 'owner'
+                  ? t.auth.createBusiness
+                  : t.auth.joinTeam}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
+            {t.auth.alreadyHaveAccount}{' '}
+            <Link
+              href="/login"
+              className="text-primary hover:underline"
+            >
+              {t.auth.signIn}
             </Link>
           </p>
         </div>
