@@ -28,6 +28,8 @@ import {
   ServiceBreakdown,
   type ServiceBreakdownItem,
 } from "@/components/dashboard/service-breakdown"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { dashboardTranslations } from "@/lib/i18n/dashboard"
 import { createClient } from "@/lib/supabase/client"
 
 type JobStatus =
@@ -62,6 +64,8 @@ type Payment = {
 type Expense = {
   amount: number | string
 }
+
+type GreetingKey = "morning" | "afternoon" | "evening"
 
 function toNumber(value: number | string | null | undefined): number {
   const n = Number(value)
@@ -114,7 +118,7 @@ function getTrend(
   }
 }
 
-function getTripoliDateParts() {
+function getTripoliDateParts(dateError: string) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Africa/Tripoli",
     year: "numeric",
@@ -128,14 +132,14 @@ function getTripoliDateParts() {
   const day = parts.find((part) => part.type === "day")?.value
 
   if (!year || !month || !day) {
-    throw new Error("Could not determine today's date")
+    throw new Error(dateError)
   }
 
   return { year, month, day }
 }
 
-function getDateRange() {
-  const { year, month, day } = getTripoliDateParts()
+function getDateRange(dateError: string) {
+  const { year, month, day } = getTripoliDateParts(dateError)
   const today = `${year}-${month}-${day}`
 
   const previousDate = new Date(`${today}T12:00:00+02:00`)
@@ -159,10 +163,11 @@ function getDateRange() {
   }
 }
 
-function formatDashboardDate(dateString: string) {
+function formatDashboardDate(dateString: string, language: string) {
   const date = new Date(`${dateString}T12:00:00+02:00`)
+  const locale = language === "ar" ? "ar" : "en-US"
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -170,7 +175,7 @@ function formatDashboardDate(dateString: string) {
   }).format(date)
 }
 
-function getGreeting() {
+function getGreetingKey(): GreetingKey {
   const hour = Number(
     new Intl.DateTimeFormat("en-US", {
       hour: "2-digit",
@@ -179,12 +184,15 @@ function getGreeting() {
     }).format(new Date()),
   )
 
-  if (hour < 12) return "Good morning"
-  if (hour < 18) return "Good afternoon"
-  return "Good evening"
+  if (hour < 12) return "morning"
+  if (hour < 18) return "afternoon"
+  return "evening"
 }
 
 export default function DashboardPage() {
+  const { language } = useLanguage()
+  const t = dashboardTranslations[language]
+
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState("there")
   const [dashboardDate, setDashboardDate] = useState("")
@@ -214,7 +222,7 @@ export default function DashboardPage() {
         await supabase.auth.getUser()
 
       if (authError || !authData.user) {
-        throw new Error("You are not logged in")
+        throw new Error(t.errors.notLoggedIn)
       }
 
       const { data: profile, error: profileError } = await supabase
@@ -224,13 +232,13 @@ export default function DashboardPage() {
         .single()
 
       if (profileError || !profile) {
-        throw new Error("Couldn't find your business profile")
+        throw new Error(t.errors.businessProfile)
       }
 
       setUserName(profile.name)
 
-      const range = getDateRange()
-      setDashboardDate(formatDashboardDate(range.today))
+      const range = getDateRange(t.errors.date)
+      setDashboardDate(formatDashboardDate(range.today, language))
 
       const [
         todayJobsResult,
@@ -279,31 +287,31 @@ export default function DashboardPage() {
 
       if (todayJobsResult.error) {
         throw new Error(
-          `Couldn't load today's jobs: ${todayJobsResult.error.message}`,
+          `${t.errors.todayJobs}: ${todayJobsResult.error.message}`,
         )
       }
 
       if (yesterdayJobsResult.error) {
         throw new Error(
-          `Couldn't load yesterday's jobs: ${yesterdayJobsResult.error.message}`,
+          `${t.errors.yesterdayJobs}: ${yesterdayJobsResult.error.message}`,
         )
       }
 
       if (todayPaymentsResult.error) {
         throw new Error(
-          `Couldn't load today's payments: ${todayPaymentsResult.error.message}`,
+          `${t.errors.todayPayments}: ${todayPaymentsResult.error.message}`,
         )
       }
 
       if (yesterdayPaymentsResult.error) {
         throw new Error(
-          `Couldn't load yesterday's payments: ${yesterdayPaymentsResult.error.message}`,
+          `${t.errors.yesterdayPayments}: ${yesterdayPaymentsResult.error.message}`,
         )
       }
 
       if (todayExpensesResult.error) {
         throw new Error(
-          `Couldn't load today's expenses: ${todayExpensesResult.error.message}`,
+          `${t.errors.todayExpenses}: ${todayExpensesResult.error.message}`,
         )
       }
 
@@ -373,13 +381,15 @@ export default function DashboardPage() {
       setRecentJobs(
         todayJobs.slice(0, 5).map((job) => ({
           id: `#${job.id.slice(0, 8)}`,
-          vehicle: job.car_model || "Unnamed vehicle",
-          plate: job.plate_number || "No plate",
+          vehicle:
+            job.car_model || t.fallback.unnamedVehicle,
+          plate: job.plate_number || t.fallback.noPlate,
           service:
             job.job_services
               ?.map((service) => service.service_name)
-              .join(" + ") || "No services",
-          worker: job.assigned_worker?.name || "Unassigned",
+              .join(" + ") || t.fallback.noServices,
+          worker:
+            job.assigned_worker?.name || t.fallback.unassigned,
           status: job.status,
           time: new Date(job.created_at).toLocaleTimeString([], {
             hour: "2-digit",
@@ -395,7 +405,8 @@ export default function DashboardPage() {
 
       for (const job of todayJobs) {
         for (const service of job.job_services ?? []) {
-          const name = service.service_name || "Unnamed service"
+          const name =
+            service.service_name || t.fallback.unnamedService
 
           if (!serviceMap.has(name)) {
             serviceMap.set(name, {
@@ -405,6 +416,7 @@ export default function DashboardPage() {
           }
 
           const entry = serviceMap.get(name)!
+
           entry.jobs.add(job.id)
           entry.revenue += toNumber(service.line_total)
         }
@@ -439,7 +451,7 @@ export default function DashboardPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "Couldn't load dashboard"
+          : t.errors.loadDashboard
 
       toast.error(message)
     } finally {
@@ -449,7 +461,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboard()
-  }, [])
+  }, [language])
 
   const revenueTrend = getTrend(revenue, yesterdayRevenue)
   const carsTrend = getTrend(carsToday, yesterdayCars)
@@ -462,22 +474,22 @@ export default function DashboardPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
-              {loading ? "Loading dashboard" : dashboardDate}
+              {loading ? t.loading : dashboardDate}
             </p>
 
             <h1 className="mt-2 text-[25px] font-semibold tracking-[-0.035em] sm:text-[30px]">
-              {getGreeting()}, {userName}
+              {t.greetings[getGreetingKey()]}, {userName}
             </h1>
 
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Here's what's happening at your car wash today.
+              {t.description}
             </p>
           </div>
 
           <Link href="/jobs/new" className="shrink-0">
             <Button className="h-10 gap-2 rounded-xl px-4 shadow-sm">
               <Plus className="h-4 w-4" />
-              New Job
+              {t.newJob}
             </Button>
           </Link>
         </section>
@@ -485,40 +497,40 @@ export default function DashboardPage() {
         {loading ? (
           <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-border/70 bg-card text-muted-foreground shadow-sm">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Loading dashboard...
+            {t.loadingFull}
           </div>
         ) : (
           <>
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                title="Today's Revenue"
+                title={t.stats.revenue}
                 value={formatMoney(revenue)}
-                subtitle="vs yesterday"
+                subtitle={t.stats.vsYesterday}
                 trend={revenueTrend.value}
                 trendType={revenueTrend.type}
                 icon={CircleDollarSign}
               />
 
               <StatCard
-                title="Cars Today"
+                title={t.stats.carsToday}
                 value={String(carsToday)}
-                subtitle="completed & active"
+                subtitle={t.stats.completedActive}
                 trend={carsTrend.value}
                 trendType={carsTrend.type}
                 icon={Car}
               />
 
               <StatCard
-                title="In Progress"
+                title={t.stats.inProgress}
                 value={String(inProgress)}
-                subtitle="vehicles being serviced"
+                subtitle={t.stats.vehiclesBeingServiced}
                 icon={Clock3}
               />
 
               <StatCard
-                title="Completed"
+                title={t.stats.completed}
                 value={String(completed)}
-                subtitle="jobs completed today"
+                subtitle={t.stats.jobsCompletedToday}
                 trend={completedTrend.value}
                 trendType={completedTrend.type}
                 icon={ClipboardCheck}
@@ -542,7 +554,7 @@ export default function DashboardPage() {
               >
                 <CardHeader className="border-b border-border/60 px-5 py-4">
                   <CardTitle className="text-[15px] font-semibold tracking-tight">
-                    Cash Position
+                    {t.finance.cashPosition}
                   </CardTitle>
                 </CardHeader>
 
@@ -552,13 +564,13 @@ export default function DashboardPage() {
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Expected cash collected today
+                    {t.finance.expectedCash}
                   </p>
 
                   <div className="mt-4 grid grid-cols-2 gap-2.5">
                     <div className="rounded-xl border border-border/60 bg-muted/40 px-3.5 py-3">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                        Cash
+                        {t.finance.cash}
                       </p>
 
                       <p className="mt-1 text-sm font-semibold">
@@ -568,7 +580,7 @@ export default function DashboardPage() {
 
                     <div className="rounded-xl border border-border/60 bg-muted/40 px-3.5 py-3">
                       <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                        Bank Transfer
+                        {t.finance.bankTransfer}
                       </p>
 
                       <p className="mt-1 text-sm font-semibold">
@@ -585,7 +597,7 @@ export default function DashboardPage() {
               >
                 <CardHeader className="border-b border-border/60 px-5 py-4">
                   <CardTitle className="text-[15px] font-semibold tracking-tight">
-                    Today's Expenses
+                    {t.finance.todayExpenses}
                   </CardTitle>
                 </CardHeader>
 
@@ -595,7 +607,7 @@ export default function DashboardPage() {
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Recorded business expenses
+                    {t.finance.recordedExpenses}
                   </p>
 
                   <div className="mt-4 flex items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3">
@@ -606,11 +618,13 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-sm font-semibold">
                         {expenseCount}{" "}
-                        {expenseCount === 1 ? "expense" : "expenses"}
+                        {expenseCount === 1
+                          ? t.finance.expense
+                          : t.finance.expenses}
                       </p>
 
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        recorded today
+                        {t.finance.recordedToday}
                       </p>
                     </div>
                   </div>
@@ -623,7 +637,7 @@ export default function DashboardPage() {
               >
                 <CardHeader className="border-b border-primary/10 px-5 py-4 dark:border-primary/15">
                   <CardTitle className="text-[15px] font-semibold tracking-tight">
-                    Estimated Net
+                    {t.finance.estimatedNet}
                   </CardTitle>
                 </CardHeader>
 
@@ -633,12 +647,12 @@ export default function DashboardPage() {
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Revenue minus recorded expenses
+                    {t.finance.revenueMinusExpenses}
                   </p>
 
                   <div className="mt-4 rounded-xl border border-primary/10 bg-primary/5 px-3.5 py-3">
                     <p className="text-[11px] leading-relaxed text-primary">
-                      End-of-day reconciliation will give the final figure.
+                      {t.finance.reconciliation}
                     </p>
                   </div>
                 </CardContent>

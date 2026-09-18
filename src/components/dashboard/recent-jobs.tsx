@@ -6,6 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { dashboardTranslations } from "@/lib/i18n/dashboard"
 
 export type RecentJob = {
   id: string
@@ -22,21 +24,6 @@ export type RecentJob = {
   time: string
 }
 
-function formatStatus(status: RecentJob["status"]) {
-  switch (status) {
-    case "waiting":
-      return "Waiting"
-    case "in_progress":
-      return "In Progress"
-    case "ready":
-      return "Ready"
-    case "completed":
-      return "Completed"
-    case "cancelled":
-      return "Cancelled"
-  }
-}
-
 function getStatusVariant(status: RecentJob["status"]) {
   if (status === "ready") return "default"
   if (status === "completed") return "secondary"
@@ -44,16 +31,19 @@ function getStatusVariant(status: RecentJob["status"]) {
 }
 
 export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
+  const { language } = useLanguage()
+  const t = dashboardTranslations[language]
+
   return (
     <Card size="sm" className="premium-hover">
       <CardHeader className="flex flex-row items-center justify-between px-4 py-4 sm:px-5">
         <div>
           <CardTitle className="text-[15px] font-semibold">
-            Today's Operations
+            {t.recentJobs.title}
           </CardTitle>
 
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Current vehicle activity
+            {t.recentJobs.subtitle}
           </p>
         </div>
 
@@ -61,7 +51,7 @@ export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
           href="/operations"
           className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400"
         >
-          View all
+          {t.recentJobs.viewAll}
         </Link>
       </CardHeader>
 
@@ -69,9 +59,12 @@ export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
         {jobs.length === 0 ? (
           <div className="flex min-h-[150px] items-center justify-center px-4 py-6 sm:px-5">
             <div className="max-w-xs text-center">
-              <p className="text-sm font-semibold">No jobs today</p>
+              <p className="text-sm font-semibold">
+                {t.recentJobs.emptyTitle}
+              </p>
+
               <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                New jobs will appear here as they are created.
+                {t.recentJobs.emptyDescription}
               </p>
             </div>
           </div>
@@ -110,7 +103,7 @@ export function RecentJobs({ jobs }: { jobs: RecentJob[] }) {
                   variant={getStatusVariant(job.status) as any}
                   className="shrink-0 text-[10px]"
                 >
-                  {formatStatus(job.status)}
+                  {t.recentJobs.statuses[job.status]}
                 </Badge>
               </div>
             ))}

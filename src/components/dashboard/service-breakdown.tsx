@@ -4,6 +4,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { dashboardTranslations } from "@/lib/i18n/dashboard"
 
 export type ServiceBreakdownItem = {
   name: string
@@ -17,15 +19,18 @@ export function ServiceBreakdown({
 }: {
   services: ServiceBreakdownItem[]
 }) {
+  const { language } = useLanguage()
+  const t = dashboardTranslations[language]
+
   return (
     <Card size="sm" className="premium-hover">
       <CardHeader className="px-4 py-4 sm:px-5">
         <CardTitle className="text-[15px] font-semibold">
-          Service Breakdown
+          {t.serviceBreakdown.title}
         </CardTitle>
 
         <p className="text-[11px] text-muted-foreground">
-          Today's service activity
+          {t.serviceBreakdown.subtitle}
         </p>
       </CardHeader>
 
@@ -34,11 +39,11 @@ export function ServiceBreakdown({
           <div className="flex min-h-[150px] items-center justify-center px-2 py-6 text-center">
             <div className="max-w-xs">
               <p className="text-sm font-semibold">
-                No service activity today
+                {t.serviceBreakdown.emptyTitle}
               </p>
 
               <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                Service activity will appear here after jobs are created.
+                {t.serviceBreakdown.emptyDescription}
               </p>
             </div>
           </div>
@@ -52,7 +57,10 @@ export function ServiceBreakdown({
                   </span>
 
                   <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {service.jobs} {service.jobs === 1 ? "job" : "jobs"}
+                    {service.jobs}{" "}
+                    {service.jobs === 1
+                      ? t.serviceBreakdown.job
+                      : t.serviceBreakdown.jobs}
                   </span>
                 </div>
 
