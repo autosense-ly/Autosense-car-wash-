@@ -49,10 +49,6 @@ function toNumber(value: number | string | null | undefined): number {
   return Number.isFinite(n) ? n : 0
 }
 
-function formatMethod(method: Method) {
-  return method === "cash" ? "Cash" : "Bank Transfer"
-}
-
 function getPaymentStatusClass(status: PaymentStatus) {
   switch (status) {
     case "paid":
@@ -104,7 +100,7 @@ export default function PaymentsPage() {
     ])
 
     if (jobError) {
-      toast.error("Couldn't load jobs: " + jobError.message)
+      toast.error(`${t.errors.loadJobs}: ${jobError.message}`)
       setLoading(false)
       return
     }
@@ -143,6 +139,16 @@ export default function PaymentsPage() {
       )
 
     return jobPayments[0]?.method ?? null
+  }
+
+  function formatMethod(method: Method) {
+    return method === "cash" ? t.cash : t.bankTransfer
+  }
+
+  function formatStatus(status: PaymentStatus) {
+    if (status === "paid") return t.paid
+    if (status === "partial") return t.partial
+    return t.unpaid
   }
 
   const filteredJobs = useMemo(() => {
@@ -186,7 +192,7 @@ export default function PaymentsPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      toast.error("Not logged in")
+      toast.error(t.errors.notLoggedIn)
       setCollectingId(null)
       return
     }
@@ -198,7 +204,7 @@ export default function PaymentsPage() {
       .single()
 
     if (!profile) {
-      toast.error("Couldn't find your business")
+      toast.error(t.errors.businessNotFound)
       setCollectingId(null)
       return
     }
@@ -216,11 +222,11 @@ export default function PaymentsPage() {
     setCollectingId(null)
 
     if (error) {
-      toast.error("Couldn't record payment: " + error.message)
+      toast.error(`${t.errors.recordPayment}: ${error.message}`)
       return
     }
 
-    toast.success(`Marked as paid via ${formatMethod(method)}`)
+    toast.success(`${t.success.markedPaid} ${formatMethod(method)}`)
     loadData()
   }
 
@@ -230,13 +236,13 @@ export default function PaymentsPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400">
-              Finance
+              {t.finance}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Payments
+              {t.title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Track payments and collection activity.
+              {t.description}
             </p>
           </div>
         </section>
@@ -247,13 +253,13 @@ export default function PaymentsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Collected Today
+                    {t.collectedToday}
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {totals.collected.toFixed(2)} LYD
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Total payments received
+                    {t.totalPaymentsReceived}
                   </p>
                 </div>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
@@ -268,13 +274,13 @@ export default function PaymentsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Cash
+                    {t.cash}
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {totals.cash.toFixed(2)} LYD
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Cash collected today
+                    {t.cashCollectedToday}
                   </p>
                 </div>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
@@ -289,13 +295,13 @@ export default function PaymentsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Bank Transfer
+                    {t.bankTransfer}
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {totals.bankTransfer.toFixed(2)} LYD
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Transfers collected today
+                    {t.transfersCollectedToday}
                   </p>
                 </div>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
@@ -311,10 +317,10 @@ export default function PaymentsPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-base">
-                  Payment History
+                  {t.paymentHistory}
                 </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  View and collect outstanding job payments.
+                  {t.paymentHistoryDescription}
                 </p>
               </div>
 
@@ -334,7 +340,7 @@ export default function PaymentsPage() {
             {loading && (
               <div className="flex items-center justify-center py-14 text-sm text-muted-foreground">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Loading payments...
+                {t.loading}
               </div>
             )}
 
@@ -345,7 +351,7 @@ export default function PaymentsPage() {
                 </div>
                 <p className="mt-4 font-medium">{t.noJobsFound}</p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                  Create a job first, then its payment will appear here.
+                  {t.createJobFirst}
                 </p>
               </div>
             )}
@@ -355,13 +361,13 @@ export default function PaymentsPage() {
                 <table className="w-full min-w-[900px] text-sm">
                   <thead>
                     <tr className="border-b border-border/60 bg-muted/20 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                      <th className="px-5 py-3">Job</th>
-                      <th className="px-4 py-3">Customer</th>
-                      <th className="px-4 py-3">Vehicle</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Method</th>
-                      <th className="px-5 py-3 text-right">Action</th>
+                      <th className="px-5 py-3">{t.job}</th>
+                      <th className="px-4 py-3">{t.customer}</th>
+                      <th className="px-4 py-3">{t.vehicle}</th>
+                      <th className="px-4 py-3">{t.amount}</th>
+                      <th className="px-4 py-3">{t.status}</th>
+                      <th className="px-4 py-3">{t.method}</th>
+                      <th className="px-5 py-3 text-right">{t.action}</th>
                     </tr>
                   </thead>
 
@@ -387,7 +393,7 @@ export default function PaymentsPage() {
                           </td>
 
                           <td className="px-4 py-4 font-medium">
-                            {job.customer_name || "Walk-in"}
+                            {job.customer_name || t.walkIn}
                           </td>
 
                           <td className="px-4 py-4">
@@ -397,7 +403,7 @@ export default function PaymentsPage() {
                               </div>
                               <div className="min-w-0">
                                 <p className="truncate font-medium">
-                                  {job.car_model || "Unnamed vehicle"}
+                                  {job.car_model || t.unnamedVehicle}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {job.plate_number}
@@ -415,11 +421,7 @@ export default function PaymentsPage() {
                               variant="outline"
                               className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getPaymentStatusClass(status)}`}
                             >
-                              {status === "paid"
-                                ? "Paid"
-                                : status === "partial"
-                                  ? "Partial"
-                                  : "Unpaid"}
+                              {formatStatus(status)}
                             </Badge>
                           </td>
 
@@ -448,7 +450,7 @@ export default function PaymentsPage() {
                                   {collectingId === job.id && (
                                     <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                                   )}
-                                  Cash
+                                  {t.cash}
                                 </Button>
 
                                 <Button
@@ -459,12 +461,12 @@ export default function PaymentsPage() {
                                     collectPayment(job, "bank_transfer")
                                   }
                                 >
-                                  Bank Transfer
+                                  {t.bankTransfer}
                                 </Button>
                               </div>
                             ) : (
                               <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                                Collected
+                                {t.collected}
                               </span>
                             )}
                           </td>
