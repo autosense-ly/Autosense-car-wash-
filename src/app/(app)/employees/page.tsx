@@ -71,18 +71,25 @@ const emptyForm: FormState = {
   percentage_rate: "",
 }
 
-function formatPay(worker: Worker) {
+function formatPay(worker: Worker, t: (typeof employeesTranslations)["en"]) {
   if (worker.pay_type === "percentage") {
     return worker.percentage_rate != null
-      ? `${worker.percentage_rate}% per job`
-      : "Percentage"
+      ? `${worker.percentage_rate}% ${t.perJob}`
+      : t.percentage
   }
 
   if (worker.salary_amount != null) {
-    return `${worker.salary_amount} LYD / ${worker.salary_frequency ?? "month"}`
+    const frequency =
+      worker.salary_frequency === "daily"
+        ? t.perDay
+        : worker.salary_frequency === "weekly"
+          ? t.perWeek
+          : t.perMonth
+
+    return `${worker.salary_amount} LYD / ${frequency}`
   }
 
-  return "Salary"
+  return t.salary
 }
 
 export default function EmployeesPage() {
@@ -108,7 +115,7 @@ export default function EmployeesPage() {
       .order("created_at", { ascending: true })
 
     if (error) {
-      toast.error("Couldn't load employees: " + error.message)
+      toast.error(`${t.errors.load}: ${error.message}`)
     } else {
       setWorkers((data as Worker[]) ?? [])
     }
@@ -159,7 +166,7 @@ export default function EmployeesPage() {
 
   async function handleSave() {
     if (!form.name.trim()) {
-      toast.error("Name is required")
+      toast.error(t.errors.nameRequired)
       return
     }
 
@@ -172,7 +179,7 @@ export default function EmployeesPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      toast.error("Not logged in")
+      toast.error(t.errors.notLoggedIn)
       setSaving(false)
       return
     }
@@ -184,7 +191,7 @@ export default function EmployeesPage() {
       .single()
 
     if (!profile) {
-      toast.error("Couldn't find your business")
+      toast.error(t.errors.businessNotFound)
       setSaving(false)
       return
     }
@@ -218,12 +225,12 @@ export default function EmployeesPage() {
     setSaving(false)
 
     if (error) {
-      toast.error("Couldn't save: " + error.message)
+      toast.error(`${t.errors.save}: ${error.message}`)
       return
     }
 
     toast.success(
-      editingId ? "Employee updated" : "Employee added",
+      editingId ? t.success.updated : t.success.added,
     )
 
     setDialogOpen(false)
@@ -239,7 +246,7 @@ export default function EmployeesPage() {
       .eq("id", worker.id)
 
     if (error) {
-      toast.error("Couldn't update: " + error.message)
+      toast.error(`${t.errors.update}: ${error.message}`)
       return
     }
 
@@ -253,11 +260,7 @@ export default function EmployeesPage() {
   }
 
   async function handleDelete(worker: Worker) {
-    if (
-      !confirm(
-        `Remove "${worker.name}"? This can't be undone.`,
-      )
-    ) {
+    if (!confirm(`${t.confirmRemove.replace("{name}", worker.name)} ${t.cannotUndo}`)) {
       return
     }
 
@@ -269,11 +272,11 @@ export default function EmployeesPage() {
       .eq("id", worker.id)
 
     if (error) {
-      toast.error("Couldn't delete: " + error.message)
+      toast.error(`${t.errors.delete}: ${error.message}`)
       return
     }
 
-    toast.success("Employee removed")
+    toast.success(t.success.removed)
 
     setWorkers((prev) =>
       prev.filter((w) => w.id !== worker.id),
@@ -286,12 +289,11 @@ export default function EmployeesPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Employees
+              {t.title}
             </h1>
 
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Manage staff and payment arrangements. Owner and manager
-              accounts are managed separately, under Settings.
+              {t.description}
             </p>
           </div>
 
@@ -300,7 +302,7 @@ export default function EmployeesPage() {
             className="h-10 w-full gap-2 rounded-xl bg-blue-600 px-4 shadow-sm hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Add Employee
+            {t.addEmployee}
           </Button>
         </section>
 
@@ -323,7 +325,7 @@ export default function EmployeesPage() {
           <Card size="sm" className="premium-hover">
             <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Loading employees...
+              {t.loading}
             </CardContent>
           </Card>
         )}
@@ -338,14 +340,14 @@ export default function EmployeesPage() {
 
                 <p className="mt-4 text-sm font-semibold">
                   {workers.length === 0
-                    ? "No employees yet"
-                    : "No employees found"}
+                    ? t.noEmployeesYet
+                    : t.noEmployeesFound}
                 </p>
 
                 <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
                   {workers.length === 0
-                    ? "Add your first employee to get started."
-                    : "Try a different name or phone number."}
+                    ? t.addFirstEmployee
+                    : t.tryDifferentSearch}
                 </p>
 
                 {workers.length === 0 && (
@@ -354,7 +356,7 @@ export default function EmployeesPage() {
                     className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
                   >
                     <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Add Employee
+                    {t.addEmployee}
                   </Button>
                 )}
               </div>
@@ -382,7 +384,7 @@ export default function EmployeesPage() {
                       </CardTitle>
 
                       <p className="mt-1 truncate text-[11px] text-muted-foreground sm:text-xs">
-                        {worker.phone || "No phone"}
+                        {worker.phone || t.noPhone}
                       </p>
                     </div>
                   </div>
@@ -402,14 +404,14 @@ export default function EmployeesPage() {
                       <DropdownMenuItem
                         onClick={() => openEditDialog(worker)}
                       >
-                        Edit
+                        {t.edit}
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
                         onClick={() => handleDelete(worker)}
                         className="text-destructive focus:text-destructive"
                       >
-                        Remove
+                        {t.remove}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -419,23 +421,23 @@ export default function EmployeesPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Payment
+                        {t.payment}
                       </p>
 
                       <p className="mt-1 truncate text-[12px] font-semibold sm:text-sm">
-                        {formatPay(worker)}
+                        {formatPay(worker, t)}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Type
+                        {t.type}
                       </p>
 
                       <p className="mt-1 text-[12px] font-semibold sm:text-sm">
                         {worker.pay_type === "salary"
-                          ? "Salary"
-                          : "Percentage"}
+                          ? t.salary
+                          : t.percentage}
                       </p>
                     </div>
                   </div>
@@ -455,7 +457,7 @@ export default function EmployeesPage() {
                         }
                         className="rounded-full px-2.5 py-0.5 text-[10px]"
                       >
-                        {worker.active ? "Active" : "Inactive"}
+                        {worker.active ? t.active : t.inactive}
                       </Badge>
                     </div>
 
@@ -465,7 +467,7 @@ export default function EmployeesPage() {
                       onClick={() => openEditDialog(worker)}
                       className="h-9 rounded-xl px-3 text-xs"
                     >
-                      Edit
+                      {t.edit}
                     </Button>
                   </div>
                 </CardContent>
@@ -481,13 +483,15 @@ export default function EmployeesPage() {
           <DialogContent className="rounded-2xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {editingId ? "Edit employee" : "Add employee"}
+                {editingId
+                  ? t.editEmployeeTitle
+                  : t.addEmployeeTitle}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t.name}</Label>
 
                 <Input
                   id="name"
@@ -503,7 +507,7 @@ export default function EmployeesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t.phone}</Label>
 
                 <Input
                   id="phone"
@@ -536,11 +540,11 @@ export default function EmployeesPage() {
 
                   <SelectContent>
                     <SelectItem value="salary">
-                      Fixed salary
+                      {t.fixedSalary}
                     </SelectItem>
 
                     <SelectItem value="percentage">
-                      Percentage per job
+                      {t.percentagePerJob}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -550,7 +554,7 @@ export default function EmployeesPage() {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="salary_amount">
-                      Salary amount (LYD)
+                      {t.salaryAmount}
                     </Label>
 
                     <Input
@@ -568,7 +572,7 @@ export default function EmployeesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Frequency</Label>
+                    <Label>{t.frequency}</Label>
 
                     <Select
                       value={form.salary_frequency}
@@ -585,15 +589,15 @@ export default function EmployeesPage() {
 
                       <SelectContent>
                         <SelectItem value="daily">
-                          Daily
+                          {t.daily}
                         </SelectItem>
 
                         <SelectItem value="weekly">
-                          Weekly
+                          {t.weekly}
                         </SelectItem>
 
                         <SelectItem value="monthly">
-                          Monthly
+                          {t.monthly}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -602,7 +606,7 @@ export default function EmployeesPage() {
               ) : (
                 <div className="space-y-2">
                   <Label htmlFor="percentage_rate">
-                    Percentage rate (%)
+                    {t.percentageRate}
                   </Label>
 
                   <Input
@@ -627,7 +631,7 @@ export default function EmployeesPage() {
                 onClick={() => setDialogOpen(false)}
                 className="rounded-xl"
               >
-                Cancel
+                {t.cancel}
               </Button>
 
               <Button
@@ -636,10 +640,10 @@ export default function EmployeesPage() {
                 className="rounded-xl bg-blue-600 hover:bg-blue-700"
               >
                 {saving
-                  ? "Saving..."
+                  ? t.saving
                   : editingId
-                    ? "Save changes"
-                    : "Add employee"}
+                    ? t.saveChanges
+                    : t.addEmployee}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -71,8 +71,15 @@ const emptyForm: FormState = {
   duration_minutes: "",
 }
 
-function formatPrice(service: Service) {
-  if (service.pricing_type === "custom") return "Custom"
+type ServicesCopy = (typeof servicesFormTranslations)["en"]
+
+function formatPrice(
+  service: Service,
+  formT: ServicesCopy,
+) {
+  if (service.pricing_type === "custom") {
+    return formT.customPrice
+  }
 
   if (service.price == null) return "—"
 
@@ -83,8 +90,11 @@ function formatPrice(service: Service) {
   return `${service.price} LYD`
 }
 
-function formatDuration(minutes: number | null) {
-  return minutes ? `${minutes} min` : "—"
+function formatDuration(
+  minutes: number | null,
+  formT: ServicesCopy,
+) {
+  return minutes ? `${minutes} ${formT.minutesShort}` : "—"
 }
 
 export default function ServicesPage() {
@@ -110,7 +120,7 @@ export default function ServicesPage() {
       .order("created_at", { ascending: true })
 
     if (error) {
-      toast.error("Couldn't load services: " + error.message)
+      toast.error(`${formT.errors.load}: ${error.message}`)
     } else {
       setServices((data as Service[]) ?? [])
     }
@@ -148,7 +158,7 @@ export default function ServicesPage() {
 
   async function handleSave() {
     if (!form.name.trim()) {
-      toast.error("Service name is required")
+      toast.error(formT.errors.nameRequired)
       return
     }
 
@@ -161,7 +171,7 @@ export default function ServicesPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      toast.error("Not logged in")
+      toast.error(formT.errors.notLoggedIn)
       setSaving(false)
       return
     }
@@ -173,7 +183,7 @@ export default function ServicesPage() {
       .single()
 
     if (!profile) {
-      toast.error("Couldn't find your business")
+      toast.error(formT.errors.businessNotFound)
       setSaving(false)
       return
     }
@@ -205,11 +215,16 @@ export default function ServicesPage() {
     setSaving(false)
 
     if (error) {
-      toast.error("Couldn't save: " + error.message)
+      toast.error(`${formT.errors.save}: ${error.message}`)
       return
     }
 
-    toast.success(editingId ? "Service updated" : "Service added")
+    toast.success(
+      editingId
+        ? formT.success.updated
+        : formT.success.added,
+    )
+
     setDialogOpen(false)
     loadServices()
   }
@@ -223,7 +238,7 @@ export default function ServicesPage() {
       .eq("id", service.id)
 
     if (error) {
-      toast.error("Couldn't update: " + error.message)
+      toast.error(`${formT.errors.update}: ${error.message}`)
       return
     }
 
@@ -237,7 +252,11 @@ export default function ServicesPage() {
   }
 
   async function handleDelete(service: Service) {
-    if (!confirm(`Delete "${service.name}"? This can't be undone.`)) {
+    if (
+      !confirm(
+        `${formT.deleteLabel} "${service.name}"?`,
+      )
+    ) {
       return
     }
 
@@ -249,12 +268,14 @@ export default function ServicesPage() {
       .eq("id", service.id)
 
     if (error) {
-      toast.error("Couldn't delete: " + error.message)
+      toast.error(`${formT.errors.delete}: ${error.message}`)
       return
     }
 
-    toast.success("Service deleted")
-    setServices((prev) => prev.filter((s) => s.id !== service.id))
+    toast.success(formT.success.deleted)
+    setServices((prev) =>
+      prev.filter((s) => s.id !== service.id),
+    )
   }
 
   return (
@@ -263,11 +284,11 @@ export default function ServicesPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Services
+              {formT.title}
             </h1>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Configure the services your car wash offers.
+              {formT.description}
             </p>
           </div>
 
@@ -276,7 +297,7 @@ export default function ServicesPage() {
             className="h-10 w-full gap-2 rounded-xl bg-blue-600 px-4 shadow-sm hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Add Service
+            {formT.addService}
           </Button>
         </section>
 
@@ -284,7 +305,7 @@ export default function ServicesPage() {
           <Card size="sm" className="premium-hover">
             <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Loading services...
+              {formT.loading}
             </CardContent>
           </Card>
         )}
@@ -298,11 +319,11 @@ export default function ServicesPage() {
                 </div>
 
                 <p className="mt-4 text-sm font-semibold">
-                  No services yet
+                  {formT.noServices}
                 </p>
 
                 <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                  Add your first service to get started.
+                  {formT.addFirstService}
                 </p>
 
                 <Button
@@ -310,7 +331,7 @@ export default function ServicesPage() {
                   className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
                 >
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Add Service
+                  {formT.addService}
                 </Button>
               </div>
             </CardContent>
@@ -332,7 +353,7 @@ export default function ServicesPage() {
                     </CardTitle>
 
                     <p className="mt-1 truncate text-[11px] text-muted-foreground sm:text-xs">
-                      {service.category || "Uncategorized"}
+                      {service.category || formT.uncategorized}
                     </p>
                   </div>
 
@@ -351,14 +372,14 @@ export default function ServicesPage() {
                       <DropdownMenuItem
                         onClick={() => openEditDialog(service)}
                       >
-                        Edit
+                        {formT.edit}
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
                         onClick={() => handleDelete(service)}
                         className="text-destructive focus:text-destructive"
                       >
-                        Delete
+                        {formT.deleteLabel}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -368,22 +389,22 @@ export default function ServicesPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Price
+                        {formT.price}
                       </p>
 
                       <p className="mt-1 truncate text-[12px] font-semibold sm:text-sm">
-                        {formatPrice(service)}
+                        {formatPrice(service, formT)}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Duration
+                        {formT.duration}
                       </p>
 
                       <p className="mt-1 flex items-center gap-1.5 text-[12px] font-semibold sm:text-sm">
                         <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                        {formatDuration(service.duration_minutes)}
+                        {formatDuration(service.duration_minutes, formT)}
                       </p>
                     </div>
                   </div>
@@ -399,11 +420,15 @@ export default function ServicesPage() {
 
                       <Badge
                         variant={
-                          service.enabled ? "default" : "secondary"
+                          service.enabled
+                            ? "default"
+                            : "secondary"
                         }
                         className="rounded-full px-2.5 py-0.5 text-[10px]"
                       >
-                        {service.enabled ? "Active" : "Disabled"}
+                        {service.enabled
+                          ? formT.active
+                          : formT.disabled}
                       </Badge>
                     </div>
 
@@ -413,7 +438,7 @@ export default function ServicesPage() {
                       onClick={() => openEditDialog(service)}
                       className="h-9 rounded-xl px-3 text-xs"
                     >
-                      Edit
+                      {formT.edit}
                     </Button>
                   </div>
                 </CardContent>
@@ -422,17 +447,24 @@ export default function ServicesPage() {
           </div>
         )}
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+        >
           <DialogContent className="rounded-2xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {editingId ? "Edit service" : "Add service"}
+                {editingId
+                  ? formT.editService
+                  : formT.addServiceTitle}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">
+                  {formT.name}
+                </Label>
 
                 <Input
                   id="name"
@@ -448,7 +480,9 @@ export default function ServicesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">
+                  {formT.category}
+                </Label>
 
                 <Input
                   id="category"
@@ -465,7 +499,9 @@ export default function ServicesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>{t.services.pricingType}</Label>
+                <Label>
+                  {t.services.pricingType}
+                </Label>
 
                 <Select
                   value={form.pricing_type}
@@ -482,15 +518,15 @@ export default function ServicesPage() {
 
                   <SelectContent>
                     <SelectItem value="fixed">
-                      Fixed price
+                      {formT.fixedPrice}
                     </SelectItem>
 
                     <SelectItem value="quantity">
-                      Price per unit
+                      {formT.pricePerUnit}
                     </SelectItem>
 
                     <SelectItem value="custom">
-                      Custom (set per job)
+                      {formT.customPrice}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -498,7 +534,9 @@ export default function ServicesPage() {
 
               {form.pricing_type !== "custom" && (
                 <div className="space-y-2">
-                  <Label htmlFor="price">{t.services.priceLyD}</Label>
+                  <Label htmlFor="price">
+                    {t.services.priceLyD}
+                  </Label>
 
                   <Input
                     id="price"
@@ -538,7 +576,7 @@ export default function ServicesPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="duration">
-                  Duration (minutes)
+                  {formT.durationMinutes}
                 </Label>
 
                 <Input
@@ -562,7 +600,7 @@ export default function ServicesPage() {
                 onClick={() => setDialogOpen(false)}
                 className="rounded-xl"
               >
-                Cancel
+                {formT.cancel}
               </Button>
 
               <Button
@@ -571,10 +609,10 @@ export default function ServicesPage() {
                 className="rounded-xl bg-blue-600 hover:bg-blue-700"
               >
                 {saving
-                  ? "Saving..."
+                  ? formT.saving
                   : editingId
-                    ? "Save changes"
-                    : "Add service"}
+                    ? formT.saveChanges
+                    : formT.addServiceTitle}
               </Button>
             </DialogFooter>
           </DialogContent>
