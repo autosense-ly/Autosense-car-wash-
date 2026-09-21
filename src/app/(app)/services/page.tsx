@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Clock3, Loader2, MoreHorizontal, Plus } from "lucide-react"
 import { toast } from "sonner"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +36,9 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { translations } from "@/lib/i18n/translations"
+import { servicesFormTranslations } from "@/lib/i18n/services"
 
 type PricingType = "fixed" | "quantity" | "custom"
 
@@ -84,6 +88,10 @@ function formatDuration(minutes: number | null) {
 }
 
 export default function ServicesPage() {
+  const { language } = useLanguage()
+  const t = translations[language]
+  const formT = servicesFormTranslations[language]
+
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -444,7 +452,7 @@ export default function ServicesPage() {
 
                 <Input
                   id="category"
-                  placeholder="e.g. Wash, Detailing, Maintenance"
+                  placeholder={formT.categoryPlaceholder}
                   value={form.category}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -457,7 +465,7 @@ export default function ServicesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Pricing type</Label>
+                <Label>{t.services.pricingType}</Label>
 
                 <Select
                   value={form.pricing_type}
@@ -490,7 +498,7 @@ export default function ServicesPage() {
 
               {form.pricing_type !== "custom" && (
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price (LYD)</Label>
+                  <Label htmlFor="price">{t.services.priceLyD}</Label>
 
                   <Input
                     id="price"
@@ -509,11 +517,13 @@ export default function ServicesPage() {
 
               {form.pricing_type === "quantity" && (
                 <div className="space-y-2">
-                  <Label htmlFor="unit_name">Unit name</Label>
+                  <Label htmlFor="unit_name">
+                    {t.services.unitName}
+                  </Label>
 
                   <Input
                     id="unit_name"
-                    placeholder="e.g. liter, item"
+                    placeholder={formT.unitNamePlaceholder}
                     value={form.unit_name}
                     onChange={(e) =>
                       setForm((f) => ({

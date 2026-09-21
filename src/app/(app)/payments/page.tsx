@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { paymentsTranslations } from "@/lib/i18n/payments"
 
 type PaymentStatus = "paid" | "partial" | "unpaid"
 type Method = "cash" | "bank_transfer"
@@ -74,6 +76,9 @@ function isToday(dateString: string) {
 }
 
 export default function PaymentsPage() {
+  const { language } = useLanguage()
+  const t = paymentsTranslations[language]
+
   const [jobs, setJobs] = useState<JobRow[]>([])
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -316,7 +321,7 @@ export default function PaymentsPage() {
               <div className="relative w-full sm:w-80">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search payments..."
+                  placeholder={t.searchPlaceholder}
                   className="h-9 rounded-xl pl-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -338,7 +343,7 @@ export default function PaymentsPage() {
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
                   <Banknote className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <p className="mt-4 font-medium">No jobs found</p>
+                <p className="mt-4 font-medium">{t.noJobsFound}</p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                   Create a job first, then its payment will appear here.
                 </p>

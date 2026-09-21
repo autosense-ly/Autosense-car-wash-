@@ -20,6 +20,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { jobDetailsTranslations } from "@/lib/i18n/job-details"
+import { useLanguage } from "@/lib/i18n/language-provider"
 import { createClient } from "@/lib/supabase/client"
 
 type JobStatus =
@@ -62,23 +64,28 @@ type PaymentRow = {
   created_at: string
 }
 
+type JobDetailsTranslations = (typeof jobDetailsTranslations)["en"]
+
 function toNumber(value: number | string | null | undefined) {
   const number = Number(value)
   return Number.isFinite(number) ? number : 0
 }
 
-function formatStatus(status: JobStatus) {
+function formatStatus(
+  status: JobStatus,
+  t: JobDetailsTranslations,
+) {
   switch (status) {
     case "waiting":
-      return "Waiting"
+      return t.waiting
     case "in_progress":
-      return "In Progress"
+      return t.inProgress
     case "ready":
-      return "Ready"
+      return t.ready
     case "completed":
-      return "Completed"
+      return t.completed
     case "cancelled":
-      return "Cancelled"
+      return t.cancelled
   }
 }
 
@@ -97,8 +104,11 @@ function getStatusClass(status: JobStatus) {
   }
 }
 
-function formatMethod(method: PaymentRow["method"]) {
-  return method === "cash" ? "Cash" : "Bank Transfer"
+function formatMethod(
+  method: PaymentRow["method"],
+  t: JobDetailsTranslations,
+) {
+  return method === "cash" ? t.cash : t.bankTransfer
 }
 
 export default function JobDetailsPage({
@@ -107,6 +117,8 @@ export default function JobDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
+  const { language } = useLanguage()
+  const t = jobDetailsTranslations[language]
 
   const [job, setJob] = useState<JobRow | null>(null)
   const [payments, setPayments] = useState<PaymentRow[]>([])
@@ -123,17 +135,18 @@ export default function JobDetailsPage({
           await supabase.auth.getUser()
 
         if (authError || !authData.user) {
-          throw new Error("You are not logged in")
+          throw new Error(t.notLoggedIn)
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("app_users")
-          .select("business_id")
-          .eq("id", authData.user.id)
-          .single()
+        const { data: profile, error: profileError } =
+          await supabase
+            .from("app_users")
+            .select("business_id")
+            .eq("id", authData.user.id)
+            .single()
 
         if (profileError || !profile) {
-          throw new Error("Couldn't find your business profile")
+          throw new Error(t.businessProfileNotFound)
         }
 
         const [jobResult, paymentsResult] = await Promise.all([
@@ -161,39 +174,36 @@ export default function JobDetailsPage({
             return
           }
 
-          throw new Error(
-            `Couldn't load job: ${jobResult.error.message}`,
-          )
+          console.error(jobResult.error)
+          throw new Error(t.loadJobError)
         }
 
         if (paymentsResult.error) {
-          throw new Error(
-            `Couldn't load payments: ${paymentsResult.error.message}`,
-          )
+          console.error(paymentsResult.error)
+          throw new Error(t.loadPaymentsError)
         }
 
         setJob(jobResult.data as unknown as JobRow)
         setPayments((paymentsResult.data as PaymentRow[]) ?? [])
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Couldn't load job"
+        console.error(error)
 
-        toast.error(message)
+        toast.error(
+          error instanceof Error ? error.message : t.loadJobError,
+        )
       } finally {
         setLoading(false)
       }
     }
 
     loadJob()
-  }, [id])
+  }, [id, t])
 
   if (loading) {
     return (
       <div className="mx-auto flex w-full max-w-[1100px] items-center justify-center p-6 py-20 text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading job...
+        {t.loadingJob}
       </div>
     )
   }
@@ -204,18 +214,18 @@ export default function JobDetailsPage({
         <Link href="/jobs">
           <Button variant="ghost" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
+            {t.backToJobs}
           </Button>
         </Link>
 
         <Card>
           <CardContent className="p-8 text-center">
             <h1 className="text-xl font-semibold">
-              Job not found
+              {t.jobNotFound}
             </h1>
 
             <p className="mt-2 text-sm text-muted-foreground">
-              This job could not be found in your business.
+              {t.jobNotFoundDescription}
             </p>
           </CardContent>
         </Card>
@@ -231,11 +241,9 @@ export default function JobDetailsPage({
   const remaining = Math.max(total - paid, 0)
 
   const paymentStatus =
-    paid <= 0
-      ? "Unpaid"
-      : paid < total
-        ? "Partial"
-        : "Paid"
+    paid <= 0 ? t.unpaid : paid < total ? t.partial : t.paid
+
+  const dateLocale = language === "ar" ? "ar-EG" : "en-US"
 
   return (
     <div className="mx-auto w-full max-w-[1100px] space-y-6 p-4 lg:p-6">
@@ -248,11 +256,11 @@ export default function JobDetailsPage({
 
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Job #{job.id.slice(0, 8)}
+            {t.jobNumber} #{job.id.slice(0, 8)}
           </h1>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            View vehicle, services, status and payment information.
+            {t.jobDescription}
           </p>
         </div>
       </div>
@@ -262,7 +270,7 @@ export default function JobDetailsPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Car className="h-4 w-4 text-blue-600" />
-              Vehicle
+              {t.vehicle}
             </CardTitle>
           </CardHeader>
 
@@ -270,34 +278,34 @@ export default function JobDetailsPage({
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Vehicle
+                  {t.vehicle}
                 </p>
                 <p className="mt-1 font-medium">
-                  {job.car_model || "Unnamed vehicle"}
+                  {job.car_model || t.unnamedVehicle}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Plate Number
+                  {t.plateNumber}
                 </p>
                 <p className="mt-1 font-medium">
-                  {job.plate_number || "No plate"}
+                  {job.plate_number || t.noPlate}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Customer
+                  {t.customer}
                 </p>
                 <p className="mt-1 font-medium">
-                  {job.customer_name || "Walk-in"}
+                  {job.customer_name || t.walkIn}
                 </p>
               </div>
 
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Phone
+                  {t.phone}
                 </p>
                 <p className="mt-1 font-medium">
                   {job.customer_phone || "—"}
@@ -306,7 +314,7 @@ export default function JobDetailsPage({
 
               <div>
                 <p className="text-xs text-muted-foreground">
-                  Color
+                  {t.color}
                 </p>
                 <p className="mt-1 font-medium">
                   {job.car_color || "—"}
@@ -319,7 +327,7 @@ export default function JobDetailsPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Status
+              {t.status}
             </CardTitle>
           </CardHeader>
 
@@ -328,12 +336,12 @@ export default function JobDetailsPage({
               variant="outline"
               className={getStatusClass(job.status)}
             >
-              {formatStatus(job.status)}
+              {formatStatus(job.status, t)}
             </Badge>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock3 className="h-4 w-4" />
-              {new Date(job.created_at).toLocaleString()}
+              {new Date(job.created_at).toLocaleString(dateLocale)}
             </div>
           </CardContent>
         </Card>
@@ -341,7 +349,7 @@ export default function JobDetailsPage({
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">
-              Services
+              {t.services}
             </CardTitle>
           </CardHeader>
 
@@ -359,39 +367,41 @@ export default function JobDetailsPage({
                       </p>
 
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Qty {toNumber(service.quantity)} ·{" "}
-                        {toNumber(service.unit_price).toFixed(2)} LYD each
+                        {t.quantity} {toNumber(service.quantity)} ·{" "}
+                        {toNumber(service.unit_price).toFixed(2)}{" "}
+                        {t.currency} {t.each}
                       </p>
                     </div>
 
                     <span className="whitespace-nowrap font-medium">
-                      {toNumber(service.line_total).toFixed(2)} LYD
+                      {toNumber(service.line_total).toFixed(2)}{" "}
+                      {t.currency}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
               <p className="py-6 text-sm text-muted-foreground">
-                No services recorded.
+                {t.noServices}
               </p>
             )}
 
             <div className="mt-4 border-t pt-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
-                  Subtotal
+                  {t.subtotal}
                 </span>
 
                 <span>
-                  {toNumber(job.subtotal).toFixed(2)} LYD
+                  {toNumber(job.subtotal).toFixed(2)} {t.currency}
                 </span>
               </div>
 
               <div className="mt-2 flex justify-between text-lg font-semibold">
-                <span>Total</span>
+                <span>{t.total}</span>
 
                 <span>
-                  {total.toFixed(2)} LYD
+                  {total.toFixed(2)} {t.currency}
                 </span>
               </div>
             </div>
@@ -402,13 +412,13 @@ export default function JobDetailsPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCard className="h-4 w-4 text-blue-600" />
-              Payment
+              {t.payment}
             </CardTitle>
           </CardHeader>
 
           <CardContent>
             <p className="text-2xl font-semibold">
-              {total.toFixed(2)} LYD
+              {total.toFixed(2)} {t.currency}
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
@@ -418,19 +428,19 @@ export default function JobDetailsPage({
             <div className="mt-5 space-y-2 border-t pt-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  Paid
+                  {t.paidAmount}
                 </span>
                 <span>
-                  {paid.toFixed(2)} LYD
+                  {paid.toFixed(2)} {t.currency}
                 </span>
               </div>
 
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  Remaining
+                  {t.remaining}
                 </span>
                 <span>
-                  {remaining.toFixed(2)} LYD
+                  {remaining.toFixed(2)} {t.currency}
                 </span>
               </div>
             </div>
@@ -438,7 +448,7 @@ export default function JobDetailsPage({
             {payments.length > 0 && (
               <div className="mt-5 space-y-2 border-t pt-4">
                 <p className="text-xs font-medium text-muted-foreground">
-                  Payment History
+                  {t.paymentHistory}
                 </p>
 
                 {payments.map((payment) => (
@@ -447,11 +457,12 @@ export default function JobDetailsPage({
                     className="flex justify-between gap-3 text-xs"
                   >
                     <span className="text-muted-foreground">
-                      {formatMethod(payment.method)}
+                      {formatMethod(payment.method, t)}
                     </span>
 
                     <span className="font-medium">
-                      {toNumber(payment.amount).toFixed(2)} LYD
+                      {toNumber(payment.amount).toFixed(2)}{" "}
+                      {t.currency}
                     </span>
                   </div>
                 ))}
@@ -464,41 +475,41 @@ export default function JobDetailsPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <UserRound className="h-4 w-4 text-blue-600" />
-              Job Information
+              {t.jobInformation}
             </CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">
-                Worker
+                {t.worker}
               </span>
 
               <span>
-                {job.assigned_worker?.name || "Not assigned"}
+                {job.assigned_worker?.name || t.notAssigned}
               </span>
             </div>
 
             {job.notes && (
               <div>
                 <p className="text-muted-foreground">
-                  Notes
+                  {t.notes}
                 </p>
 
-                <p className="mt-1">
-                  {job.notes}
-                </p>
+                <p className="mt-1">{job.notes}</p>
               </div>
             )}
 
             {job.completed_at && (
               <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">
-                  Completed
+                  {t.completed}
                 </span>
 
                 <span>
-                  {new Date(job.completed_at).toLocaleString()}
+                  {new Date(job.completed_at).toLocaleString(
+                    dateLocale,
+                  )}
                 </span>
               </div>
             )}

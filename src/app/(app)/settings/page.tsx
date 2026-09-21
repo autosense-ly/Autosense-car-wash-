@@ -13,57 +13,62 @@ import {
   Users,
   Wrench,
 } from "lucide-react"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { settingsTranslations } from "@/lib/i18n/settings"
 import { createClient } from "@/lib/supabase/client"
 
-const sections = [
+const sectionKeys: Array<{
+  key:
+    | "business"
+    | "permissions"
+    | "services"
+    | "employees"
+    | "payments"
+    | "notifications"
+  icon: typeof Building2
+  href?: string
+}> = [
   {
-    title: "Business",
-    description:
-      "Business name, contact information and general details.",
+    key: "business",
     icon: Building2,
   },
   {
-    title: "Permissions",
-    description:
-      "Control exactly what owners, managers and workers can access.",
+    key: "permissions",
     icon: LockKeyhole,
     href: "/settings/permissions",
   },
   {
-    title: "Services",
-    description:
-      "Configure services, pricing, durations and service-specific options.",
+    key: "services",
     icon: Wrench,
   },
   {
-    title: "Employees",
-    description:
-      "Manage employee roles, access and payment arrangements.",
+    key: "employees",
     icon: Users,
     href: "/employees",
   },
   {
-    title: "Payments",
-    description:
-      "Configure payment methods and who can collect payments.",
+    key: "payments",
     icon: CreditCard,
     href: "/payments",
   },
   {
-    title: "Notifications",
-    description:
-      "Configure operational and customer notifications.",
+    key: "notifications",
     icon: Bell,
   },
-]
+] as const
 
 export default function SettingsPage() {
+  const { language } = useLanguage()
+  const t = settingsTranslations[language]
+
   const [business, setBusiness] = useState<{
     id: string
     name: string
   } | null>(null)
+
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
@@ -73,9 +78,7 @@ export default function SettingsPage() {
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
-        setError(
-          "Not logged in — no active session found. Sign in first at /login.",
-        )
+        setError(t.notLoggedIn)
         setLoading(false)
         return
       }
@@ -87,18 +90,26 @@ export default function SettingsPage() {
         .then(({ data, error }) => {
           setLoading(false)
 
-          if (data) setBusiness(data)
-          if (error) setError(error.message)
+          if (data) {
+            setBusiness(data)
+          }
+
+          if (error) {
+            setError(error.message)
+          }
         })
     })
-  }, [])
+  }, [language, t])
 
   function handleCopy() {
     if (!business) return
 
     navigator.clipboard.writeText(business.id)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+
+    setTimeout(() => {
+      setCopied(false)
+    }, 2000)
   }
 
   return (
@@ -112,13 +123,15 @@ export default function SettingsPage() {
 
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-600 dark:text-blue-400">
-                System
+                {t.system}
               </p>
+
               <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-[28px]">
-                Settings
+                {t.title}
               </h1>
+
               <p className="mt-1 text-sm text-muted-foreground">
-                Configure AF Car Wash for how your business operates.
+                {t.description}
               </p>
             </div>
           </div>
@@ -128,7 +141,7 @@ export default function SettingsPage() {
           <CardHeader className="border-b border-border/60 px-5 py-4">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              Your Business
+              {t.yourBusiness}
             </CardTitle>
           </CardHeader>
 
@@ -136,7 +149,7 @@ export default function SettingsPage() {
             {loading && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="h-4 w-4 animate-pulse rounded-full bg-muted" />
-                Loading business details...
+                {t.loadingBusinessDetails}
               </div>
             )}
 
@@ -150,17 +163,21 @@ export default function SettingsPage() {
               <>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                    Business name
+                    {t.businessName}
                   </p>
-                  <p className="mt-1.5 font-semibold">{business.name}</p>
+
+                  <p className="mt-1.5 font-semibold">
+                    {business.name}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                    Business ID
+                    {t.businessId}
                   </p>
+
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Share this ID with anyone joining as a manager.
+                    {t.businessIdDescription}
                   </p>
 
                   <div className="mt-2 flex items-center gap-2">
@@ -176,7 +193,7 @@ export default function SettingsPage() {
                       className="shrink-0 rounded-xl"
                     >
                       <Copy className="mr-1.5 h-3.5 w-3.5" />
-                      {copied ? "Copied" : "Copy"}
+                      {copied ? t.copied : t.copy}
                     </Button>
                   </div>
                 </div>
@@ -186,8 +203,11 @@ export default function SettingsPage() {
         </Card>
 
         <div className="space-y-3">
-          {sections.map((section) => {
+          {sectionKeys.map((section) => {
             const Icon = section.icon
+
+            const title = t[section.key]
+            const description = t[`${section.key}Description`]
 
             const content = (
               <CardContent className="flex items-center gap-4 p-4 sm:p-5">
@@ -196,20 +216,23 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{section.title}</p>
+                  <p className="font-semibold">
+                    {title}
+                  </p>
+
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                    {section.description}
+                    {description}
                   </p>
                 </div>
 
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5" />
+                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 rtl:rotate-180" />
               </CardContent>
             )
 
             if (section.href) {
               return (
                 <Link
-                  key={section.title}
+                  key={section.key}
                   href={section.href}
                   className="group block"
                 >
@@ -222,7 +245,7 @@ export default function SettingsPage() {
 
             return (
               <Card
-                key={section.title}
+                key={section.key}
                 className="rounded-2xl border-2 border-border bg-card shadow-sm"
               >
                 {content}
@@ -235,16 +258,13 @@ export default function SettingsPage() {
           <CardHeader className="border-b border-border/60 px-5 py-4">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <Settings2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              Configuration Philosophy
+              {t.configurationPhilosophy}
             </CardTitle>
           </CardHeader>
 
           <CardContent className="p-5">
             <p className="text-sm leading-6 text-muted-foreground">
-              AF Car Wash is designed to adapt to how each car wash operates.
-              Owners should be able to decide which features managers can
-              access, who can collect payments, what information is visible,
-              and which services are available.
+              {t.configurationDescription}
             </p>
           </CardContent>
         </Card>

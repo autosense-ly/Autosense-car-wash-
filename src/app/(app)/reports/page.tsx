@@ -20,6 +20,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { reportsTranslations } from "@/lib/i18n/reports"
 import { createClient } from "@/lib/supabase/client"
 
 type PaymentRow = {
@@ -65,13 +67,16 @@ function dateKey(date: Date) {
   return `${year}-${month}-${day}`
 }
 
-function formatDayLabel(date: Date) {
-  return date.toLocaleDateString([], {
+function formatDayLabel(date: Date, language: "en" | "ar") {
+  return date.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
     weekday: "short",
   })
 }
 
 export default function ReportsPage() {
+  const { language } = useLanguage()
+  const t = reportsTranslations[language]
+
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [jobs, setJobs] = useState<JobRow[]>([])
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
@@ -88,17 +93,18 @@ export default function ReportsPage() {
           await supabase.auth.getUser()
 
         if (authError || !authData.user) {
-          throw new Error("You are not logged in")
+          throw new Error(t.notLoggedIn)
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("app_users")
-          .select("business_id")
-          .eq("id", authData.user.id)
-          .single()
+        const { data: profile, error: profileError } =
+          await supabase
+            .from("app_users")
+            .select("business_id")
+            .eq("id", authData.user.id)
+            .single()
 
         if (profileError || !profile) {
-          throw new Error("Couldn't find your business profile")
+          throw new Error(t.businessProfileNotFound)
         }
 
         const today = startOfDay(new Date())
@@ -114,61 +120,47 @@ export default function ReportsPage() {
               .select("amount, created_at")
               .eq("business_id", profile.business_id)
               .gte("created_at", startIso)
-              .order("created_at", {
-                ascending: true,
-              }),
+              .order("created_at", { ascending: true }),
 
             supabase
               .from("jobs")
               .select("id, created_at")
               .eq("business_id", profile.business_id)
               .gte("created_at", startIso)
-              .order("created_at", {
-                ascending: true,
-              }),
+              .order("created_at", { ascending: true }),
 
             supabase
               .from("expenses")
               .select("amount, expense_date")
               .eq("business_id", profile.business_id)
               .gte("expense_date", startIso)
-              .order("expense_date", {
-                ascending: true,
-              }),
+              .order("expense_date", { ascending: true }),
           ])
 
         if (paymentsResult.error) {
           throw new Error(
-            `Couldn't load payments: ${paymentsResult.error.message}`,
+            `${t.paymentsLoadFailed}: ${paymentsResult.error.message}`,
           )
         }
 
         if (jobsResult.error) {
           throw new Error(
-            `Couldn't load jobs: ${jobsResult.error.message}`,
+            `${t.jobsLoadFailed}: ${jobsResult.error.message}`,
           )
         }
 
         if (expensesResult.error) {
           throw new Error(
-            `Couldn't load expenses: ${expensesResult.error.message}`,
+            `${t.expensesLoadFailed}: ${expensesResult.error.message}`,
           )
         }
 
-        setPayments(
-          (paymentsResult.data as PaymentRow[]) ?? [],
-        )
-
+        setPayments((paymentsResult.data as PaymentRow[]) ?? [])
         setJobs((jobsResult.data as JobRow[]) ?? [])
-
-        setExpenses(
-          (expensesResult.data as ExpenseRow[]) ?? [],
-        )
+        setExpenses((expensesResult.data as ExpenseRow[]) ?? [])
       } catch (error) {
         toast.error(
-          error instanceof Error
-            ? error.message
-            : "Couldn't load reports",
+          error instanceof Error ? error.message : t.loadReportsFailed,
         )
       } finally {
         setLoading(false)
@@ -176,7 +168,7 @@ export default function ReportsPage() {
     }
 
     loadReports()
-  }, [])
+  }, [language, t])
 
   const today = useMemo(() => startOfDay(new Date()), [])
 
@@ -232,18 +224,15 @@ export default function ReportsPage() {
 
       const key = dateKey(day)
 
-      const amount = payments.reduce(
-        (sum, payment) => {
-          const paymentDate = new Date(payment.created_at)
+      const amount = payments.reduce((sum, payment) => {
+        const paymentDate = new Date(payment.created_at)
 
-          if (paymentDate >= day && paymentDate < nextDay) {
-            return sum + toNumber(payment.amount)
-          }
+        if (paymentDate >= day && paymentDate < nextDay) {
+          return sum + toNumber(payment.amount)
+        }
 
-          return sum
-        },
-        0,
-      )
+        return sum
+      }, 0)
 
       const jobCount = jobs.filter((job) => {
         const jobDate = new Date(job.created_at)
@@ -251,24 +240,19 @@ export default function ReportsPage() {
         return jobDate >= day && jobDate < nextDay
       }).length
 
-      const expenseTotal = expenses.reduce(
-        (sum, expense) => {
-          const expenseDate = new Date(
-            expense.expense_date,
-          )
+      const expenseTotal = expenses.reduce((sum, expense) => {
+        const expenseDate = new Date(expense.expense_date)
 
-          if (expenseDate >= day && expenseDate < nextDay) {
-            return sum + toNumber(expense.amount)
-          }
+        if (expenseDate >= day && expenseDate < nextDay) {
+          return sum + toNumber(expense.amount)
+        }
 
-          return sum
-        },
-        0,
-      )
+        return sum
+      }, 0)
 
       days.push({
         date: key,
-        label: formatDayLabel(day),
+        label: formatDayLabel(day, language),
         amount,
         jobs: jobCount,
         expenses: expenseTotal,
@@ -277,18 +261,22 @@ export default function ReportsPage() {
     }
 
     return days
-  }, [payments, jobs, expenses, today])
+  }, [payments, jobs, expenses, today, language])
 
-  const maxRevenue = useMemo(() => {
-    return Math.max(
-      ...dailyRevenue.map((day) => day.amount),
-      1,
-    )
-  }, [dailyRevenue])
+  const maxRevenue = useMemo(
+    () => Math.max(...dailyRevenue.map((day) => day.amount), 1),
+    [dailyRevenue],
+  )
 
   function exportCsv() {
-    const header =
-      "Date,Day,Jobs,Revenue (LYD),Expenses (LYD),Estimated Net (LYD)"
+    const header = [
+      t.csvDate,
+      t.csvDay,
+      t.csvJobs,
+      t.csvRevenue,
+      t.csvExpenses,
+      t.csvEstimatedNet,
+    ].join(",")
 
     const rows = dailyRevenue.map((day) =>
       [
@@ -319,7 +307,7 @@ export default function ReportsPage() {
 
     URL.revokeObjectURL(url)
 
-    toast.success("Report exported successfully")
+    toast.success(t.reportExported)
   }
 
   if (loading) {
@@ -327,7 +315,7 @@ export default function ReportsPage() {
       <div className="mx-auto flex min-h-[60vh] w-full max-w-[1600px] items-center justify-center px-4 py-12 text-sm text-muted-foreground sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm">
           <BarChart3 className="h-4 w-4 animate-pulse text-blue-600 dark:text-blue-400" />
-          Loading reports...
+          {t.loadingReports}
         </div>
       </div>
     )
@@ -339,15 +327,15 @@ export default function ReportsPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400">
-              Analytics
+              {t.analytics}
             </p>
 
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Reports
+              {t.reports}
             </h1>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Understand your car wash performance.
+              {t.description}
             </p>
           </div>
 
@@ -357,7 +345,7 @@ export default function ReportsPage() {
               className="h-9 flex-1 rounded-xl gap-2 sm:flex-none"
             >
               <CalendarDays className="h-4 w-4" />
-              Today
+              {t.today}
             </Button>
 
             <Button
@@ -366,7 +354,7 @@ export default function ReportsPage() {
               onClick={exportCsv}
             >
               <Download className="h-4 w-4" />
-              Export
+              {t.export}
             </Button>
           </div>
         </section>
@@ -377,19 +365,16 @@ export default function ReportsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Revenue
+                    {t.revenue}
                   </p>
-
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {revenueToday.toFixed(2)} LYD
                   </p>
-
                   <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Today&apos;s recorded payments
+                    {t.todayRecordedPayments}
                   </div>
                 </div>
-
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                   <CircleDollarSign className="h-5 w-5" />
                 </div>
@@ -402,19 +387,16 @@ export default function ReportsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Cars
+                    {t.cars}
                   </p>
-
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {carsToday}
                   </p>
-
                   <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Today&apos;s jobs
+                    {t.todaysJobs}
                   </div>
                 </div>
-
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                   <Car className="h-5 w-5" />
                 </div>
@@ -427,19 +409,16 @@ export default function ReportsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Expenses
+                    {t.expenses}
                   </p>
-
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {expensesToday.toFixed(2)} LYD
                   </p>
-
                   <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
                     <ArrowDownRight className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
-                    Today&apos;s recorded expenses
+                    {t.todayRecordedExpenses}
                   </div>
                 </div>
-
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                   <Receipt className="h-5 w-5" />
                 </div>
@@ -452,18 +431,15 @@ export default function ReportsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                    Estimated Net
+                    {t.estimatedNet}
                   </p>
-
                   <p className="mt-2 text-2xl font-semibold tracking-tight">
                     {estimatedNet.toFixed(2)} LYD
                   </p>
-
                   <p className="mt-2 text-[11px] text-muted-foreground">
-                    Revenue minus recorded expenses
+                    {t.revenueMinusExpenses}
                   </p>
                 </div>
-
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                   <BarChart3 className="h-5 w-5" />
                 </div>
@@ -475,11 +451,9 @@ export default function ReportsPage() {
         <section className="grid gap-4 lg:grid-cols-2">
           <Card className="rounded-2xl border-2 border-border shadow-md dark:border-border/90">
             <CardHeader className="border-b border-border/60 px-4 py-4 sm:px-5">
-              <CardTitle className="text-base">
-                Revenue Summary
-              </CardTitle>
+              <CardTitle className="text-base">{t.revenueSummary}</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Recorded payments over the last seven days.
+                {t.revenueSummaryDescription}
               </p>
             </CardHeader>
 
@@ -488,10 +462,7 @@ export default function ReportsPage() {
                 {dailyRevenue.map((day) => {
                   const height =
                     day.amount > 0
-                      ? Math.max(
-                          (day.amount / maxRevenue) * 100,
-                          4,
-                        )
+                      ? Math.max((day.amount / maxRevenue) * 100, 4)
                       : 2
 
                   return (
@@ -502,9 +473,7 @@ export default function ReportsPage() {
                       <div className="flex h-full w-full items-end">
                         <div
                           className="w-full min-w-[12px] rounded-t-lg bg-blue-600 transition-all duration-300 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
-                          style={{
-                            height: `${height}%`,
-                          }}
+                          style={{ height: `${height}%` }}
                           title={`${day.amount.toFixed(2)} LYD`}
                         />
                       </div>
@@ -521,40 +490,30 @@ export default function ReportsPage() {
 
           <Card className="rounded-2xl border-2 border-border shadow-md dark:border-border/90">
             <CardHeader className="border-b border-border/60 px-4 py-4 sm:px-5">
-              <CardTitle className="text-base">
-                Daily Summary
-              </CardTitle>
+              <CardTitle className="text-base">{t.dailySummary}</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Today&apos;s recorded business activity.
+                {t.dailySummaryDescription}
               </p>
             </CardHeader>
 
             <CardContent className="space-y-3 p-4 sm:p-5">
               <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/10 p-4">
                 <div>
-                  <p className="text-sm font-medium">
-                    Total Jobs
-                  </p>
+                  <p className="text-sm font-medium">{t.totalJobs}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Today&apos;s jobs
+                    {t.todaysJobs}
                   </p>
                 </div>
-
-                <p className="text-lg font-semibold">
-                  {carsToday}
-                </p>
+                <p className="text-lg font-semibold">{carsToday}</p>
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/10 p-4">
                 <div>
-                  <p className="text-sm font-medium">
-                    Total Revenue
-                  </p>
+                  <p className="text-sm font-medium">{t.totalRevenue}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    All recorded payments today
+                    {t.allRecordedPaymentsToday}
                   </p>
                 </div>
-
                 <p className="font-semibold">
                   {revenueToday.toFixed(2)} LYD
                 </p>
@@ -562,14 +521,11 @@ export default function ReportsPage() {
 
               <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/10 p-4">
                 <div>
-                  <p className="text-sm font-medium">
-                    Total Expenses
-                  </p>
+                  <p className="text-sm font-medium">{t.totalExpenses}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Recorded business expenses today
+                    {t.recordedBusinessExpensesToday}
                   </p>
                 </div>
-
                 <p className="font-semibold">
                   {expensesToday.toFixed(2)} LYD
                 </p>
@@ -577,15 +533,11 @@ export default function ReportsPage() {
 
               <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
                 <div>
-                  <p className="text-sm font-semibold">
-                    Estimated Net
-                  </p>
-
+                  <p className="text-sm font-semibold">{t.estimatedNet}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Revenue minus expenses
+                    {t.revenueMinusExpenses}
                   </p>
                 </div>
-
                 <p className="font-semibold text-blue-600 dark:text-blue-400">
                   {estimatedNet.toFixed(2)} LYD
                 </p>

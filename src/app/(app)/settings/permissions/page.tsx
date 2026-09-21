@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react"
 import { ArrowLeft, Check, LockKeyhole, Save } from "lucide-react"
 import Link from "next/link"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { permissionsTranslations } from "@/lib/i18n/permissions"
 
 type PermissionKey =
   | "dashboard"
@@ -29,64 +32,46 @@ type Manager = {
 
 const permissionDefinitions: {
   key: PermissionKey
-  label: string
-  description: string
+  labelKey:
+    | "dashboard"
+    | "reports"
+    | "expenses"
+    | "employees"
+    | "services"
+    | "payments"
+    | "checkin"
+    | "liveOperations"
+    | "customers"
+    | "vehicles"
+    | "settings"
+  descriptionKey:
+    | "dashboardDescription"
+    | "reportsDescription"
+    | "expensesDescription"
+    | "employeesDescription"
+    | "servicesDescription"
+    | "paymentsDescription"
+    | "checkinDescription"
+    | "liveOperationsDescription"
+    | "customersDescription"
+    | "vehiclesDescription"
+    | "settingsDescription"
 }[] = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    description: "Allow access to the main dashboard.",
-  },
-  {
-    key: "reports",
-    label: "Reports",
-    description: "Allow access to business reports and exports.",
-  },
-  {
-    key: "expenses",
-    label: "Expenses",
-    description: "Allow viewing and managing business expenses.",
-  },
-  {
-    key: "workers",
-    label: "Employees",
-    description: "Allow managing employees and worker information.",
-  },
-  {
-    key: "services",
-    label: "Services",
-    description: "Allow managing services and pricing.",
-  },
-  {
-    key: "payments",
-    label: "Payments",
-    description: "Allow viewing payments and collecting payments.",
-  },
-  {
-    key: "checkin",
-    label: "Check-in",
-    description: "Allow access to the check-in workflow.",
-  },
+  { key: "dashboard", labelKey: "dashboard", descriptionKey: "dashboardDescription" },
+  { key: "reports", labelKey: "reports", descriptionKey: "reportsDescription" },
+  { key: "expenses", labelKey: "expenses", descriptionKey: "expensesDescription" },
+  { key: "workers", labelKey: "employees", descriptionKey: "employeesDescription" },
+  { key: "services", labelKey: "services", descriptionKey: "servicesDescription" },
+  { key: "payments", labelKey: "payments", descriptionKey: "paymentsDescription" },
+  { key: "checkin", labelKey: "checkin", descriptionKey: "checkinDescription" },
   {
     key: "live_operations",
-    label: "Live Operations",
-    description: "Allow access to live car-wash operations.",
+    labelKey: "liveOperations",
+    descriptionKey: "liveOperationsDescription",
   },
-  {
-    key: "customers",
-    label: "Customers",
-    description: "Allow viewing and managing customers.",
-  },
-  {
-    key: "vehicles",
-    label: "Vehicles",
-    description: "Allow viewing and managing vehicles.",
-  },
-  {
-    key: "settings",
-    label: "Settings",
-    description: "Allow access to settings.",
-  },
+  { key: "customers", labelKey: "customers", descriptionKey: "customersDescription" },
+  { key: "vehicles", labelKey: "vehicles", descriptionKey: "vehiclesDescription" },
+  { key: "settings", labelKey: "settings", descriptionKey: "settingsDescription" },
 ]
 
 const emptyPermissions: Record<PermissionKey, boolean> = {
@@ -104,6 +89,9 @@ const emptyPermissions: Record<PermissionKey, boolean> = {
 }
 
 export default function PermissionsPage() {
+  const { language } = useLanguage()
+  const t = permissionsTranslations[language]
+
   const [managers, setManagers] = useState<Manager[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -112,7 +100,7 @@ export default function PermissionsPage() {
 
   useEffect(() => {
     loadManagers()
-  }, [])
+  }, [language])
 
   async function loadManagers() {
     const supabase = createClient()
@@ -125,7 +113,7 @@ export default function PermissionsPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      setError("You must be logged in.")
+      setError(t.mustBeLoggedIn)
       setLoading(false)
       return
     }
@@ -137,13 +125,13 @@ export default function PermissionsPage() {
       .single()
 
     if (userError || !currentUser) {
-      setError(userError?.message || "Could not load your account.")
+      setError(userError?.message || t.accountLoadFailed)
       setLoading(false)
       return
     }
 
     if (currentUser.role !== "owner") {
-      setError("Only the business owner can manage permissions.")
+      setError(t.ownerOnly)
       setLoading(false)
       return
     }
@@ -156,7 +144,7 @@ export default function PermissionsPage() {
       .order("name")
 
     if (managerError) {
-      setError(managerError.message)
+      setError(managerError.message || t.managersLoadFailed)
       setLoading(false)
       return
     }
@@ -174,7 +162,7 @@ export default function PermissionsPage() {
         .in("user_id", managerIds)
 
       if (permissionError) {
-        setError(permissionError.message)
+        setError(permissionError.message || t.permissionsLoadFailed)
         setLoading(false)
         return
       }
@@ -202,10 +190,7 @@ export default function PermissionsPage() {
     setLoading(false)
   }
 
-  function togglePermission(
-    managerId: string,
-    key: PermissionKey
-  ) {
+  function togglePermission(managerId: string, key: PermissionKey) {
     setManagers((current) =>
       current.map((manager) =>
         manager.id === managerId
@@ -242,7 +227,7 @@ export default function PermissionsPage() {
       .maybeSingle()
 
     if (lookupError) {
-      setError(lookupError.message)
+      setError(lookupError.message || t.saveFailed)
       setSaving(null)
       return
     }
@@ -265,9 +250,9 @@ export default function PermissionsPage() {
     }
 
     if (saveError) {
-      setError(saveError.message)
+      setError(saveError.message || t.saveFailed)
     } else {
-      setSuccess(`Permissions saved for ${manager.name}.`)
+      setSuccess(`${t.permissionsSaved} ${manager.name}.`)
     }
 
     setSaving(null)
@@ -284,10 +269,11 @@ export default function PermissionsPage() {
 
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Manager Permissions
+            {t.title}
           </h1>
+
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose which areas each manager can access.
+            {t.description}
           </p>
         </div>
       </div>
@@ -309,7 +295,7 @@ export default function PermissionsPage() {
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">
-              Loading managers...
+              {t.loadingManagers}
             </p>
           </CardContent>
         </Card>
@@ -320,11 +306,12 @@ export default function PermissionsPage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
               <LockKeyhole className="h-5 w-5 text-muted-foreground" />
+
               <div>
-                <p className="font-medium">No managers found</p>
+                <p className="font-medium">{t.noManagers}</p>
+
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Manager accounts will appear here when they join this
-                  business.
+                  {t.noManagersDescription}
                 </p>
               </div>
             </div>
@@ -338,7 +325,10 @@ export default function PermissionsPage() {
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-base">{manager.name}</CardTitle>
+                  <CardTitle className="text-base">
+                    {manager.name}
+                  </CardTitle>
+
                   <p className="mt-1 text-sm text-muted-foreground">
                     {manager.email}
                   </p>
@@ -350,7 +340,7 @@ export default function PermissionsPage() {
                   disabled={saving === manager.id}
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {saving === manager.id ? "Saving..." : "Save"}
+                  {saving === manager.id ? t.saving : t.save}
                 </Button>
               </div>
             </CardHeader>
@@ -369,9 +359,12 @@ export default function PermissionsPage() {
                     className="flex w-full items-center gap-4 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium">{permission.label}</p>
+                      <p className="font-medium">
+                        {t[permission.labelKey]}
+                      </p>
+
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {permission.description}
+                        {t[permission.descriptionKey]}
                       </p>
                     </div>
 

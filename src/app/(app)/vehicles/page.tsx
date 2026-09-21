@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { vehiclesTranslations } from "@/lib/i18n/vehicles"
 
 type Vehicle = {
   id: string
@@ -57,6 +59,9 @@ const emptyForm: FormState = {
 }
 
 export default function VehiclesPage() {
+  const { language, t } = useLanguage()
+  const vt = vehiclesTranslations[language]
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [visitStats, setVisitStats] = useState<Record<string, number>>({})
@@ -114,7 +119,7 @@ export default function VehiclesPage() {
   }, [])
 
   const customerName = (id: string | null) =>
-    customers.find((c) => c.id === id)?.name ?? "No owner set"
+    customers.find((c) => c.id === id)?.name ?? vt.noOwnerSet
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -128,7 +133,7 @@ export default function VehiclesPage() {
         (v.model ?? "").toLowerCase().includes(q) ||
         customerName(v.customer_id).toLowerCase().includes(q),
     )
-  }, [search, vehicles, customers])
+  }, [search, vehicles, customers, vt.noOwnerSet])
 
   function openAddDialog() {
     setEditingId(null)
@@ -241,7 +246,7 @@ export default function VehiclesPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
               <Input
-                placeholder="Search plate, vehicle or owner..."
+                placeholder={vt.searchPlaceholder}
                 className="h-10 rounded-xl border-border/70 bg-background pl-9 text-sm shadow-none focus-visible:ring-2"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -370,7 +375,7 @@ export default function VehiclesPage() {
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="plate_number">Plate number</Label>
+                <Label htmlFor="plate_number">{t.auth.plateNumber}</Label>
 
                 <Input
                   id="plate_number"
@@ -470,7 +475,7 @@ export default function VehiclesPage() {
                   }
                 >
                   <SelectTrigger className="h-10 rounded-xl">
-                    <SelectValue placeholder="No owner set" />
+                    <SelectValue placeholder={vt.noOwnerSet} />
                   </SelectTrigger>
 
                   <SelectContent>

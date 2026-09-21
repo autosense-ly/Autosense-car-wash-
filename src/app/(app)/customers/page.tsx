@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { customersTranslations } from "@/lib/i18n/customers"
 
 type Customer = {
   id: string
@@ -30,6 +32,9 @@ type FormState = {
 const emptyForm: FormState = { name: "", phone: "" }
 
 export default function CustomersPage() {
+  const { language } = useLanguage()
+  const t = customersTranslations[language]
+
   const [customers, setCustomers] = useState<Customer[]>([])
   const [carCounts, setCarCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -50,7 +55,7 @@ export default function CustomersPage() {
       .order("created_at", { ascending: true })
 
     if (error) {
-      toast.error("Couldn't load customers: " + error.message)
+      toast.error(`${t.errors.loadCustomers}: ${error.message}`)
       setLoading(false)
       return
     }
@@ -106,7 +111,7 @@ export default function CustomersPage() {
 
   async function handleSave() {
     if (!form.name.trim()) {
-      toast.error("Name is required")
+      toast.error(t.errors.nameRequired)
       return
     }
 
@@ -119,7 +124,7 @@ export default function CustomersPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      toast.error("Not logged in")
+      toast.error(t.errors.notLoggedIn)
       setSaving(false)
       return
     }
@@ -131,7 +136,7 @@ export default function CustomersPage() {
       .single()
 
     if (!profile) {
-      toast.error("Couldn't find your business")
+      toast.error(t.errors.businessNotFound)
       setSaving(false)
       return
     }
@@ -152,11 +157,14 @@ export default function CustomersPage() {
     setSaving(false)
 
     if (error) {
-      toast.error("Couldn't save: " + error.message)
+      toast.error(`${t.errors.saveCustomer}: ${error.message}`)
       return
     }
 
-    toast.success(editingId ? "Customer updated" : "Customer added")
+    toast.success(
+      editingId ? t.success.updated : t.success.added,
+    )
+
     setDialogOpen(false)
     loadCustomers()
   }
@@ -167,11 +175,11 @@ export default function CustomersPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Customers
+              {t.title}
             </h1>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Customer records and visit history.
+              {t.description}
             </p>
           </div>
 
@@ -180,18 +188,18 @@ export default function CustomersPage() {
             className="h-10 w-full gap-2 rounded-xl bg-blue-600 px-4 shadow-sm hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Add Customer
+            {t.addCustomer}
           </Button>
         </section>
 
         <Card size="sm" className="premium-hover">
           <CardContent className="p-3 sm:p-4">
             <div className="relative w-full max-w-xl">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
               <Input
-                placeholder="Search customer or phone..."
-                className="h-10 rounded-xl border-border/70 bg-background pl-9 text-sm shadow-none focus-visible:ring-2"
+                placeholder={t.searchPlaceholder}
+                className="h-10 rounded-xl border-border/70 bg-background ps-9 text-sm shadow-none focus-visible:ring-2"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -202,8 +210,8 @@ export default function CustomersPage() {
         {loading && (
           <Card size="sm" className="premium-hover">
             <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Loading customers...
+              <Loader2 className="me-2 h-5 w-5 animate-spin" />
+              {t.loading}
             </CardContent>
           </Card>
         )}
@@ -218,14 +226,14 @@ export default function CustomersPage() {
 
                 <p className="mt-4 text-sm font-semibold">
                   {customers.length === 0
-                    ? "No customers yet"
-                    : "No customers found"}
+                    ? t.noCustomersYet
+                    : t.noCustomersFound}
                 </p>
 
                 <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
                   {customers.length === 0
-                    ? "Add your first customer to get started."
-                    : "Try changing your search."}
+                    ? t.addFirstCustomer
+                    : t.changeSearch}
                 </p>
 
                 {customers.length === 0 && (
@@ -233,8 +241,8 @@ export default function CustomersPage() {
                     onClick={openAddDialog}
                     className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Add Customer
+                    <Plus className="me-1.5 h-3.5 w-3.5" />
+                    {t.addCustomer}
                   </Button>
                 )}
               </div>
@@ -263,7 +271,7 @@ export default function CustomersPage() {
 
                       <p className="mt-1 flex items-center gap-1 truncate text-[11px] text-muted-foreground sm:text-xs">
                         <Phone className="h-3 w-3 shrink-0" />
-                        {customer.phone || "No phone"}
+                        {customer.phone || t.noPhone}
                       </p>
                     </div>
                   </div>
@@ -271,7 +279,7 @@ export default function CustomersPage() {
                   <div className="mt-5 grid grid-cols-3 gap-2">
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Cars
+                        {t.cars}
                       </p>
 
                       <p className="mt-1 text-sm font-semibold">
@@ -281,7 +289,7 @@ export default function CustomersPage() {
 
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Visits
+                        {t.visits}
                       </p>
 
                       <p className="mt-1 text-sm font-semibold text-muted-foreground">
@@ -291,7 +299,7 @@ export default function CustomersPage() {
 
                     <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">
-                        Last
+                        {t.last}
                       </p>
 
                       <p className="mt-1 text-sm font-semibold text-muted-foreground">
@@ -305,7 +313,7 @@ export default function CustomersPage() {
                     className="mt-4 h-9 w-full rounded-xl text-xs"
                     onClick={() => openEditDialog(customer)}
                   >
-                    Edit Customer
+                    {t.editCustomer}
                   </Button>
                 </CardContent>
               </Card>
@@ -317,13 +325,15 @@ export default function CustomersPage() {
           <DialogContent className="rounded-2xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {editingId ? "Edit customer" : "Add customer"}
+                {editingId
+                  ? t.editCustomerTitle
+                  : t.addCustomerTitle}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t.name}</Label>
 
                 <Input
                   id="name"
@@ -339,7 +349,7 @@ export default function CustomersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{t.phone}</Label>
 
                 <Input
                   id="phone"
@@ -361,7 +371,7 @@ export default function CustomersPage() {
                 onClick={() => setDialogOpen(false)}
                 className="rounded-xl"
               >
-                Cancel
+                {t.cancel}
               </Button>
 
               <Button
@@ -370,10 +380,10 @@ export default function CustomersPage() {
                 className="rounded-xl bg-blue-600 hover:bg-blue-700"
               >
                 {saving
-                  ? "Saving..."
+                  ? t.saving
                   : editingId
-                    ? "Save changes"
-                    : "Add customer"}
+                    ? t.saveChanges
+                    : t.addCustomerAction}
               </Button>
             </DialogFooter>
           </DialogContent>

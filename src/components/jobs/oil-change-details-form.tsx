@@ -1,12 +1,14 @@
-﻿"use client"
+"use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Droplets } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { oilChangeTranslations } from "@/lib/i18n/oil-change"
 
 type OilChangeDetails = {
   brand: string
@@ -26,99 +28,92 @@ export function OilChangeDetailsForm({
   onConfirm,
   onCancel,
 }: OilChangeDetailsProps) {
+  const { language } = useLanguage()
+  const t = oilChangeTranslations[language]
+
   const [brand, setBrand] = useState(initialValue?.brand ?? "")
   const [grade, setGrade] = useState(initialValue?.grade ?? "")
   const [quantity, setQuantity] = useState(
-    initialValue?.quantity ? String(initialValue.quantity) : ""
+    initialValue?.quantity ? String(initialValue.quantity) : "",
   )
   const [pricePerLiter, setPricePerLiter] = useState(
     initialValue?.pricePerLiter
       ? String(initialValue.pricePerLiter)
-      : ""
+      : "",
   )
 
   const quantityNumber = Number(quantity) || 0
   const priceNumber = Number(pricePerLiter) || 0
   const total = quantityNumber * priceNumber
 
-  const canConfirm =
-    quantityNumber > 0 &&
-    priceNumber >= 0
+  const canConfirm = quantityNumber > 0 && priceNumber >= 0
 
   return (
     <Card className="border-blue-200 dark:border-blue-900">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Droplets className="h-4 w-4 text-blue-600" />
-          Oil Change Details
+          {t.title}
         </CardTitle>
 
         <p className="text-xs text-muted-foreground">
-          Enter the actual oil used for this vehicle.
+          {t.description}
         </p>
       </CardHeader>
 
       <CardContent className="space-y-4">
-
         <div className="grid gap-4 sm:grid-cols-2">
-
           <div className="space-y-2">
-            <Label>Oil Brand</Label>
+            <Label>{t.oilBrand}</Label>
+
             <Input
               value={brand}
-              onChange={(event) =>
-                setBrand(event.target.value)
-              }
-              placeholder="e.g. Castrol"
+              onChange={(event) => setBrand(event.target.value)}
+              placeholder={t.oilBrandPlaceholder}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Oil Grade</Label>
+            <Label>{t.oilGrade}</Label>
+
             <Input
               value={grade}
-              onChange={(event) =>
-                setGrade(event.target.value)
-              }
-              placeholder="e.g. 5W-30"
+              onChange={(event) => setGrade(event.target.value)}
+              placeholder={t.oilGradePlaceholder}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Quantity (liter)</Label>
+            <Label>{t.quantityLiter}</Label>
+
             <Input
               type="number"
               min="0"
               step="0.1"
               value={quantity}
-              onChange={(event) =>
-                setQuantity(event.target.value)
-              }
-              placeholder="e.g. 2"
+              onChange={(event) => setQuantity(event.target.value)}
+              placeholder={t.quantityPlaceholder}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Price per Liter (LYD)</Label>
+            <Label>{t.pricePerLiter}</Label>
+
             <Input
               type="number"
               min="0"
               step="0.01"
               value={pricePerLiter}
-              onChange={(event) =>
-                setPricePerLiter(event.target.value)
-              }
-              placeholder="e.g. 30"
+              onChange={(event) => setPricePerLiter(event.target.value)}
+              placeholder={t.pricePerLiterPlaceholder}
             />
           </div>
-
         </div>
 
         <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950/30">
-
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              Oil total
+              {t.oilTotal}
             </span>
 
             <span className="text-xl font-semibold text-blue-600">
@@ -131,11 +126,9 @@ export function OilChangeDetailsForm({
               {quantityNumber} L × {priceNumber.toFixed(2)} LYD
             </p>
           )}
-
         </div>
 
         <div className="flex gap-2">
-
           <Button
             type="button"
             disabled={!canConfirm}
@@ -149,7 +142,7 @@ export function OilChangeDetailsForm({
             }
             className="bg-blue-600 hover:bg-blue-700"
           >
-            Confirm Oil Details
+            {t.confirm}
           </Button>
 
           <Button
@@ -159,9 +152,7 @@ export function OilChangeDetailsForm({
           >
             Cancel
           </Button>
-
         </div>
-
       </CardContent>
     </Card>
   )

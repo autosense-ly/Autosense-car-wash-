@@ -36,6 +36,8 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { employeesTranslations } from "@/lib/i18n/employees"
 
 type PayType = "salary" | "percentage"
 type Frequency = "daily" | "weekly" | "monthly"
@@ -84,6 +86,9 @@ function formatPay(worker: Worker) {
 }
 
 export default function EmployeesPage() {
+  const { language } = useLanguage()
+  const t = employeesTranslations[language]
+
   const [workers, setWorkers] = useState<Worker[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -305,7 +310,7 @@ export default function EmployeesPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
               <Input
-                placeholder="Search employees..."
+                placeholder={t.searchPlaceholder}
                 className="h-10 rounded-xl border-border/70 bg-background pl-9 text-sm shadow-none focus-visible:ring-2"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -514,7 +519,7 @@ export default function EmployeesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Pay type</Label>
+                <Label>{t.payType}</Label>
 
                 <Select
                   value={form.pay_type}

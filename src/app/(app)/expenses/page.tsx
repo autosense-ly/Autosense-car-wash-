@@ -45,6 +45,9 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
+import { useLanguage } from "@/lib/i18n/language-provider"
+import { expensesTranslations } from "@/lib/i18n/expenses"
+import { translations } from "@/lib/i18n/translations"
 
 type ExpenseCategory =
   | "supplies"
@@ -95,6 +98,10 @@ function getTodayRange() {
 }
 
 export default function ExpensesPage() {
+  const { language } = useLanguage()
+  const common = translations[language].common
+  const t = expensesTranslations[language]
+
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -432,11 +439,11 @@ export default function ExpensesPage() {
             </div>
 
             <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
               <Input
-                placeholder="Search expenses..."
-                className="h-10 rounded-xl border-border/70 bg-background pl-9 text-sm shadow-none focus-visible:ring-2"
+                placeholder={t.searchPlaceholder}
+                className="h-10 rounded-xl border-border/70 bg-background ps-9 text-sm shadow-none focus-visible:ring-2"
                 value={search}
                 onChange={(event) =>
                   setSearch(event.target.value)
@@ -549,7 +556,7 @@ export default function ExpensesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Delete expense"
+                            aria-label={t.deleteExpense}
                             onClick={() =>
                               setDeleteTarget(expense.id)
                             }
@@ -638,7 +645,7 @@ export default function ExpensesPage() {
 
                 <Textarea
                   id="expense-description"
-                  placeholder="What was this expense for?"
+                  placeholder={t.descriptionPlaceholder}
                   value={description}
                   onChange={(event) =>
                     setDescription(event.target.value)
