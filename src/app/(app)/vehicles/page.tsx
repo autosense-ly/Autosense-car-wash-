@@ -59,7 +59,7 @@ const emptyForm: FormState = {
 }
 
 export default function VehiclesPage() {
-  const { language, t } = useLanguage()
+  const { language } = useLanguage()
   const vt = vehiclesTranslations[language]
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -96,7 +96,7 @@ export default function VehiclesPage() {
     ])
 
     if (vehicleError) {
-      toast.error("Couldn't load vehicles: " + vehicleError.message)
+      toast.error(`${vt.errors.load}: ${vehicleError.message}`)
       setLoading(false)
       return
     }
@@ -158,7 +158,7 @@ export default function VehiclesPage() {
 
   async function handleSave() {
     if (!form.plate_number.trim()) {
-      toast.error("Plate number is required")
+      toast.error(vt.errors.plateRequired)
       return
     }
 
@@ -171,7 +171,7 @@ export default function VehiclesPage() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      toast.error("Not logged in")
+      toast.error(vt.errors.notLoggedIn)
       setSaving(false)
       return
     }
@@ -183,7 +183,7 @@ export default function VehiclesPage() {
       .single()
 
     if (!profile) {
-      toast.error("Couldn't find your business")
+      toast.error(vt.errors.businessNotFound)
       setSaving(false)
       return
     }
@@ -208,11 +208,11 @@ export default function VehiclesPage() {
     setSaving(false)
 
     if (error) {
-      toast.error("Couldn't save: " + error.message)
+      toast.error(`${vt.errors.save}: ${error.message}`)
       return
     }
 
-    toast.success(editingId ? "Vehicle updated" : "Vehicle added")
+    toast.success(editingId ? vt.success.updated : vt.success.added)
     setDialogOpen(false)
     loadData()
   }
@@ -223,11 +223,11 @@ export default function VehiclesPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Vehicles
+              {vt.title}
             </h1>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Vehicles registered with your car wash.
+              {vt.description}
             </p>
           </div>
 
@@ -236,7 +236,7 @@ export default function VehiclesPage() {
             className="h-10 w-full gap-2 rounded-xl bg-blue-600 px-4 shadow-sm hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Add Vehicle
+            {vt.addVehicle}
           </Button>
         </section>
 
@@ -259,7 +259,7 @@ export default function VehiclesPage() {
           <Card size="sm" className="premium-hover">
             <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Loading vehicles...
+              {vt.loading}
             </CardContent>
           </Card>
         )}
@@ -274,14 +274,14 @@ export default function VehiclesPage() {
 
                 <p className="mt-4 text-sm font-semibold">
                   {vehicles.length === 0
-                    ? "No vehicles yet"
-                    : "No vehicles found"}
+                    ? vt.noVehiclesYet
+                    : vt.noVehiclesFound}
                 </p>
 
                 <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
                   {vehicles.length === 0
-                    ? "Add your first vehicle to get started."
-                    : "Try changing your search."}
+                    ? vt.addFirstVehicle
+                    : vt.tryDifferentSearch}
                 </p>
 
                 {vehicles.length === 0 && (
@@ -290,7 +290,7 @@ export default function VehiclesPage() {
                     className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
                   >
                     <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Add Vehicle
+                    {vt.addVehicle}
                   </Button>
                 )}
               </div>
@@ -319,11 +319,11 @@ export default function VehiclesPage() {
                           <p className="truncate text-[13px] font-semibold sm:text-sm">
                             {[vehicle.make, vehicle.model]
                               .filter(Boolean)
-                              .join(" ") || "Unnamed vehicle"}
+                              .join(" ") || vt.unnamedVehicle}
                           </p>
 
                           <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">
-                            {vehicle.year ?? "Year not set"}
+                            {vehicle.year ?? vt.yearNotSet}
                           </p>
                         </div>
 
@@ -335,7 +335,7 @@ export default function VehiclesPage() {
                       <div className="mt-5 grid grid-cols-2 gap-2">
                         <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                           <p className="text-[10px] font-medium text-muted-foreground">
-                            Owner
+                            {vt.owner}
                           </p>
 
                           <p className="mt-1 truncate text-[12px] font-semibold">
@@ -345,7 +345,7 @@ export default function VehiclesPage() {
 
                         <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
                           <p className="text-[10px] font-medium text-muted-foreground">
-                            Visits
+                            {vt.visits}
                           </p>
 
                           <p className="mt-1 text-sm font-semibold">
@@ -355,7 +355,7 @@ export default function VehiclesPage() {
                       </div>
 
                       <p className="mt-3 text-[10px] text-muted-foreground">
-                        Click to edit vehicle
+                        {vt.clickToEdit}
                       </p>
                     </div>
                   </div>
@@ -369,13 +369,13 @@ export default function VehiclesPage() {
           <DialogContent className="rounded-2xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                {editingId ? "Edit vehicle" : "Add vehicle"}
+                {editingId ? vt.editVehicle : vt.addVehicleTitle}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="plate_number">{t.auth.plateNumber}</Label>
+                <Label htmlFor="plate_number">{vt.plateNumber}</Label>
 
                 <Input
                   id="plate_number"
@@ -392,7 +392,7 @@ export default function VehiclesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="make">Make</Label>
+                  <Label htmlFor="make">{vt.make}</Label>
 
                   <Input
                     id="make"
@@ -409,7 +409,7 @@ export default function VehiclesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor="model">{vt.model}</Label>
 
                   <Input
                     id="model"
@@ -428,7 +428,7 @@ export default function VehiclesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="year">Year</Label>
+                  <Label htmlFor="year">{vt.year}</Label>
 
                   <Input
                     id="year"
@@ -446,7 +446,7 @@ export default function VehiclesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="car_color">Color</Label>
+                  <Label htmlFor="car_color">{vt.color}</Label>
 
                   <Input
                     id="car_color"
@@ -463,7 +463,7 @@ export default function VehiclesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Owner</Label>
+                <Label>{vt.owner}</Label>
 
                 <Select
                   value={form.customer_id}
@@ -489,8 +489,7 @@ export default function VehiclesPage() {
 
                 {customers.length === 0 && (
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    No customers yet — add one on the Customers page first if
-                    you want to link an owner.
+                    {vt.noCustomersHint}
                   </p>
                 )}
               </div>
@@ -502,7 +501,7 @@ export default function VehiclesPage() {
                 onClick={() => setDialogOpen(false)}
                 className="rounded-xl"
               >
-                Cancel
+                {vt.cancel}
               </Button>
 
               <Button
@@ -511,10 +510,10 @@ export default function VehiclesPage() {
                 className="rounded-xl bg-blue-600 hover:bg-blue-700"
               >
                 {saving
-                  ? "Saving..."
+                  ? vt.saving
                   : editingId
-                    ? "Save changes"
-                    : "Add vehicle"}
+                    ? vt.saveChanges
+                    : vt.addVehicle}
               </Button>
             </DialogFooter>
           </DialogContent>
