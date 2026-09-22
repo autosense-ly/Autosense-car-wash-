@@ -46,15 +46,10 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
 import { useLanguage } from "@/lib/i18n/language-provider"
-import { expensesTranslations } from "@/lib/i18n/expenses"
-import { translations } from "@/lib/i18n/translations"
-
-type ExpenseCategory =
-  | "supplies"
-  | "utilities"
-  | "maintenance"
-  | "salary"
-  | "other"
+import {
+  expensesTranslations,
+  type ExpenseCategory,
+} from "@/lib/i18n/expenses"
 
 type ExpenseRow = {
   id: string
@@ -68,14 +63,6 @@ type ExpenseRow = {
   notes: string | null
   created_by: string | null
   created_at: string
-}
-
-const categoryLabels: Record<ExpenseCategory, string> = {
-  supplies: "Supplies",
-  utilities: "Utilities",
-  maintenance: "Maintenance",
-  salary: "Salary",
-  other: "Other",
 }
 
 function toNumber(value: number | string | null | undefined) {
@@ -99,21 +86,24 @@ function getTodayRange() {
 
 export default function ExpensesPage() {
   const { language } = useLanguage()
-  const common = translations[language].common
   const t = expensesTranslations[language]
 
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(
+    null,
+  )
   const [category, setCategory] =
     useState<ExpenseCategory>("supplies")
   const [description, setDescription] = useState("")
   const [amount, setAmount] = useState("")
-  const [recordedBy, setRecordedBy] = useState("Manager")
+  const [recordedBy, setRecordedBy] = useState(t.manager)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  const categoryLabels = t.categories
 
   async function loadExpenses() {
     setLoading(true)
@@ -127,7 +117,7 @@ export default function ExpensesPage() {
       } = await supabase.auth.getUser()
 
       if (authError || !authData.user) {
-        throw new Error("You are not logged in")
+        throw new Error(t.errors.notLoggedIn)
       }
 
       const {
@@ -140,10 +130,10 @@ export default function ExpensesPage() {
         .single()
 
       if (profileError || !profile) {
-        throw new Error("Couldn't find your business profile")
+        throw new Error(t.errors.businessProfileNotFound)
       }
 
-      setRecordedBy(profile.name || "Manager")
+      setRecordedBy(profile.name || t.manager)
 
       const {
         data,
@@ -158,7 +148,7 @@ export default function ExpensesPage() {
 
       if (expensesError) {
         throw new Error(
-          `Couldn't load expenses: ${expensesError.message}`,
+          `${t.errors.loadExpenses}: ${expensesError.message}`,
         )
       }
 
@@ -167,7 +157,7 @@ export default function ExpensesPage() {
       toast.error(
         err instanceof Error
           ? err.message
-          : "Couldn't load expenses",
+          : t.errors.loadExpenses,
       )
     } finally {
       setLoading(false)
@@ -199,7 +189,7 @@ export default function ExpensesPage() {
           .includes(query),
       ),
     )
-  }, [expenses, search])
+  }, [expenses, search, categoryLabels])
 
   const totalExpensesToday = useMemo(() => {
     const { start, end } = getTodayRange()
@@ -233,7 +223,7 @@ export default function ExpensesPage() {
       } = await supabase.auth.getUser()
 
       if (authError || !authData.user) {
-        throw new Error("You are not logged in")
+        throw new Error(t.errors.notLoggedIn)
       }
 
       const {
@@ -246,7 +236,7 @@ export default function ExpensesPage() {
         .single()
 
       if (profileError || !profile) {
-        throw new Error("Couldn't find your business profile")
+        throw new Error(t.errors.businessProfileNotFound)
       }
 
       const { error: deleteError } = await supabase
@@ -257,7 +247,7 @@ export default function ExpensesPage() {
 
       if (deleteError) {
         throw new Error(
-          `Couldn't delete expense: ${deleteError.message}`,
+          `${t.errors.deleteExpense}: ${deleteError.message}`,
         )
       }
 
@@ -268,12 +258,12 @@ export default function ExpensesPage() {
       )
 
       setDeleteTarget(null)
-      toast.success("Expense deleted")
+      toast.success(t.success.expenseDeleted)
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
-          : "Couldn't delete expense",
+          : t.errors.deleteExpense,
       )
     }
   }
@@ -291,7 +281,7 @@ export default function ExpensesPage() {
     const numericAmount = Number(amount)
 
     if (!description.trim()) {
-      setError("Description is required.")
+      setError(t.descriptionRequired)
       return
     }
 
@@ -299,7 +289,7 @@ export default function ExpensesPage() {
       !Number.isFinite(numericAmount) ||
       numericAmount <= 0
     ) {
-      setError("Amount must be greater than zero.")
+      setError(t.amountGreaterThanZero)
       return
     }
 
@@ -314,7 +304,7 @@ export default function ExpensesPage() {
       } = await supabase.auth.getUser()
 
       if (authError || !authData.user) {
-        throw new Error("You are not logged in")
+        throw new Error(t.errors.notLoggedIn)
       }
 
       const {
@@ -327,7 +317,7 @@ export default function ExpensesPage() {
         .single()
 
       if (profileError || !profile) {
-        throw new Error("Couldn't find your business profile")
+        throw new Error(t.errors.businessProfileNotFound)
       }
 
       const {
@@ -354,8 +344,8 @@ export default function ExpensesPage() {
       if (insertError || !data) {
         throw new Error(
           insertError
-            ? `Couldn't create expense: ${insertError.message}`
-            : "Couldn't create expense",
+            ? `${t.errors.createExpense}: ${insertError.message}`
+            : t.errors.createExpense,
         )
       }
 
@@ -364,16 +354,16 @@ export default function ExpensesPage() {
         ...current,
       ])
 
-      setRecordedBy(profile.name || "Manager")
+      setRecordedBy(profile.name || t.manager)
       resetForm()
       setDialogOpen(false)
 
-      toast.success("Expense added")
+      toast.success(t.success.expenseAdded)
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not create expense.",
+          : t.errors.createExpense,
       )
     } finally {
       setSaving(false)
@@ -386,11 +376,11 @@ export default function ExpensesPage() {
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Expenses
+              {t.title}
             </h1>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Record and track business expenses.
+              {t.description}
             </p>
           </div>
 
@@ -402,7 +392,7 @@ export default function ExpensesPage() {
             className="h-10 w-full gap-2 rounded-xl bg-blue-600 px-4 shadow-sm hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Add Expense
+            {t.addExpense}
           </Button>
         </section>
 
@@ -415,7 +405,7 @@ export default function ExpensesPage() {
 
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  Total Expenses Today
+                  {t.totalExpensesToday}
                 </p>
 
                 <p className="mt-1 text-2xl font-semibold tracking-tight">
@@ -430,11 +420,11 @@ export default function ExpensesPage() {
           <CardHeader className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
               <CardTitle className="text-[15px] font-semibold">
-                Expense History
+                {t.expenseHistory}
               </CardTitle>
 
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Recent business expenses
+                {t.recentBusinessExpenses}
               </p>
             </div>
 
@@ -455,7 +445,7 @@ export default function ExpensesPage() {
           <CardContent className="p-0">
             {loading ? (
               <div className="flex min-h-[220px] items-center justify-center px-4 py-10 text-sm text-muted-foreground">
-                Loading expenses...
+                {t.loading}
               </div>
             ) : filteredExpenses.length === 0 ? (
               <div className="flex min-h-[220px] items-center justify-center px-4 py-10 text-center">
@@ -465,12 +455,11 @@ export default function ExpensesPage() {
                   </div>
 
                   <p className="mt-4 text-sm font-semibold">
-                    No expenses found
+                    {t.noExpensesFound}
                   </p>
 
                   <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                    Add an expense to begin tracking business
-                    costs.
+                    {t.noExpensesDescription}
                   </p>
                 </div>
               </div>
@@ -480,23 +469,23 @@ export default function ExpensesPage() {
                   <thead>
                     <tr className="border-b border-border/70 bg-muted/20 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                       <th className="px-4 py-3 sm:px-5">
-                        Expense
+                        {t.expense}
                       </th>
 
                       <th className="px-4 py-3 sm:px-5">
-                        Category
+                        {t.category}
                       </th>
 
                       <th className="px-4 py-3 sm:px-5">
-                        Description
+                        {t.descriptionLabel}
                       </th>
 
                       <th className="px-4 py-3 sm:px-5">
-                        Amount
+                        {t.amount}
                       </th>
 
                       <th className="px-4 py-3 sm:px-5">
-                        Recorded By
+                        {t.recordedBy}
                       </th>
 
                       <th className="w-12 px-4 py-3 sm:px-5" />
@@ -517,10 +506,15 @@ export default function ExpensesPage() {
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
                             {new Date(
                               expense.created_at,
-                            ).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            ).toLocaleTimeString(
+                              language === "ar"
+                                ? "ar-LY"
+                                : "en-US",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </p>
                         </td>
 
@@ -546,10 +540,7 @@ export default function ExpensesPage() {
                         <td className="px-4 py-3.5 text-[12px] sm:px-5">
                           {expense.created_by === null
                             ? "—"
-                            : expense.created_by ===
-                                expense.business_id
-                              ? recordedBy
-                              : recordedBy}
+                            : recordedBy}
                         </td>
 
                         <td className="px-4 py-3.5 text-right sm:px-5">
@@ -587,18 +578,18 @@ export default function ExpensesPage() {
           <DialogContent className="rounded-2xl sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg">
-                Add Expense
+                {t.addExpenseTitle}
               </DialogTitle>
 
               <DialogDescription>
-                Record a business expense for the shop.
+                {t.addExpenseDescription}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label htmlFor="expense-category">
-                  Category
+                  {t.category}
                 </Label>
 
                 <Select
@@ -616,23 +607,23 @@ export default function ExpensesPage() {
 
                   <SelectContent>
                     <SelectItem value="supplies">
-                      Supplies
+                      {t.categories.supplies}
                     </SelectItem>
 
                     <SelectItem value="utilities">
-                      Utilities
+                      {t.categories.utilities}
                     </SelectItem>
 
                     <SelectItem value="maintenance">
-                      Maintenance
+                      {t.categories.maintenance}
                     </SelectItem>
 
                     <SelectItem value="salary">
-                      Salary
+                      {t.categories.salary}
                     </SelectItem>
 
                     <SelectItem value="other">
-                      Other
+                      {t.categories.other}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -640,7 +631,7 @@ export default function ExpensesPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="expense-description">
-                  Description
+                  {t.descriptionLabel}
                 </Label>
 
                 <Textarea
@@ -650,13 +641,13 @@ export default function ExpensesPage() {
                   onChange={(event) =>
                     setDescription(event.target.value)
                   }
-                  className="min-h-24 rounded-xl resize-none"
+                  className="min-h-24 resize-none rounded-xl"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="expense-amount">
-                  Amount (LYD)
+                  {t.amountLyd}
                 </Label>
 
                 <Input
@@ -664,7 +655,7 @@ export default function ExpensesPage() {
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={t.amountPlaceholder}
                   value={amount}
                   onChange={(event) =>
                     setAmount(event.target.value)
@@ -675,7 +666,7 @@ export default function ExpensesPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="expense-recorded-by">
-                  Recorded By
+                  {t.recordedBy}
                 </Label>
 
                 <Input
@@ -700,7 +691,7 @@ export default function ExpensesPage() {
                 disabled={saving}
                 className="rounded-xl"
               >
-                Cancel
+                {t.cancel}
               </Button>
 
               <Button
@@ -708,7 +699,7 @@ export default function ExpensesPage() {
                 disabled={saving}
                 className="rounded-xl bg-blue-600 hover:bg-blue-700"
               >
-                {saving ? "Saving..." : "Save Expense"}
+                {saving ? t.saving : t.saveExpense}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -725,25 +716,24 @@ export default function ExpensesPage() {
           <AlertDialogContent className="rounded-2xl">
             <AlertDialogHeader>
               <AlertDialogTitle>
-                Delete expense?
+                {t.deleteExpenseTitle}
               </AlertDialogTitle>
 
               <AlertDialogDescription>
-                This expense will be permanently removed from
-                the business records.
+                {t.deleteExpenseDescription}
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <AlertDialogFooter>
               <AlertDialogCancel className="rounded-xl">
-                Cancel
+                {t.cancel}
               </AlertDialogCancel>
 
               <AlertDialogAction
                 className="rounded-xl bg-red-600 hover:bg-red-700"
                 onClick={handleDeleteExpense}
               >
-                Delete
+                {t.delete}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

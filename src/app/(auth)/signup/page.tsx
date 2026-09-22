@@ -10,10 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLanguage } from '@/lib/i18n/language-provider'
+import { signupTranslations } from '@/lib/i18n/signup'
 
 export default function SignupPage() {
   const router = useRouter()
   const { language, setLanguage, t } = useLanguage()
+  const signupT = signupTranslations[language]
 
   const [mode, setMode] = useState<'owner' | 'manager'>('owner')
 
@@ -52,9 +54,7 @@ export default function SignupPage() {
 
     if (!signUpData.session) {
       setLoading(false)
-      setError(
-        'Account created, but no active session — check that "Confirm email" is turned off in Supabase.'
-      )
+      setError(signupT.noSession)
       return
     }
 

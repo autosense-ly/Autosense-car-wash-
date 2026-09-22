@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
 import { useLanguage } from "@/lib/i18n/language-provider"
+import { jobDetailsTranslations } from "@/lib/i18n/job-details"
 
 type JobStatus =
   | "waiting"
@@ -113,23 +114,20 @@ export default function JobsPage() {
   const isArabic = language === "ar"
 
   const formatStatus = (status: JobStatus) => {
-    const labels: Record<JobStatus, string> = isArabic
-      ? {
-          waiting: "في الانتظار",
-          in_progress: "قيد التنفيذ",
-          ready: "جاهز",
-          completed: "مكتمل",
-          cancelled: "ملغى",
-        }
-      : {
-          waiting: "Waiting",
-          in_progress: "In Progress",
-          ready: "Ready",
-          completed: "Completed",
-          cancelled: "Cancelled",
-        }
+    const labels = jobDetailsTranslations[language]
 
-    return labels[status]
+    switch (status) {
+      case "waiting":
+        return labels.waiting
+      case "in_progress":
+        return labels.inProgress
+      case "ready":
+        return labels.ready
+      case "completed":
+        return labels.completed
+      case "cancelled":
+        return labels.cancelled
+    }
   }
 
   async function loadJobs() {
