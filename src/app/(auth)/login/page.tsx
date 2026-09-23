@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Car } from 'lucide-react'
+import { Car, Languages } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { t } = useLanguage()
+  const { language, setLanguage, t } = useLanguage()
+
+  function toggleLanguage() {
+    setLanguage(language === 'en' ? 'ar' : 'en')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,7 +42,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="dark flex min-h-screen w-full bg-background text-foreground">
+    <div className="dark relative flex min-h-screen w-full bg-background text-foreground">
+      {/* Language switcher */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={toggleLanguage}
+        className="absolute end-6 top-6 z-20 gap-2 rounded-xl border-border bg-card/80 px-3 backdrop-blur-sm"
+        aria-label={
+          language === 'en'
+            ? t.common.switchToArabic
+            : t.common.switchToEnglish
+        }
+        title={
+          language === 'en'
+            ? t.common.switchToArabic
+            : t.common.switchToEnglish
+        }
+      >
+        <Languages className="h-4 w-4" />
+        <span>{language === 'en' ? 'العربية' : 'EN'}</span>
+      </Button>
       <div className="flex w-[45%] flex-col justify-between border-r border-border bg-sidebar px-16 py-12">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
