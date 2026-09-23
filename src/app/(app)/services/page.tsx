@@ -304,7 +304,7 @@ export default function ServicesPage() {
         {loading && (
           <Card size="sm" className="premium-hover">
             <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="me-2 h-5 w-5 animate-spin" />
               {formT.loading}
             </CardContent>
           </Card>
@@ -330,7 +330,7 @@ export default function ServicesPage() {
                   onClick={openAddDialog}
                   className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
                 >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  <Plus className="me-1.5 h-3.5 w-3.5" />
                   {formT.addService}
                 </Button>
               </div>

@@ -202,7 +202,7 @@ export default function JobDetailsPage({
   if (loading) {
     return (
       <div className="mx-auto flex w-full max-w-[1100px] items-center justify-center p-6 py-20 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <Loader2 className="me-2 h-5 w-5 animate-spin" />
         {t.loadingJob}
       </div>
     )

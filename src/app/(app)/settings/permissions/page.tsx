@@ -339,7 +339,7 @@ export default function PermissionsPage() {
                   onClick={() => savePermissions(manager)}
                   disabled={saving === manager.id}
                 >
-                  <Save className="mr-2 h-4 w-4" />
+                  <Save className="me-2 h-4 w-4" />
                   {saving === manager.id ? t.saving : t.save}
                 </Button>
               </div>

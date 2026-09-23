@@ -496,7 +496,7 @@ export default function DashboardPage() {
 
         {loading ? (
           <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-border/70 bg-card text-muted-foreground shadow-sm">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            <Loader2 className="me-2 h-5 w-5 animate-spin" />
             {t.loadingFull}
           </div>
         ) : (

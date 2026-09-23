@@ -309,11 +309,11 @@ export default function EmployeesPage() {
         <Card size="sm" className="premium-hover">
           <CardContent className="p-3 sm:p-4">
             <div className="relative w-full max-w-xl">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
               <Input
                 placeholder={t.searchPlaceholder}
-                className="h-10 rounded-xl border-border/70 bg-background pl-9 text-sm shadow-none focus-visible:ring-2"
+                className="h-10 rounded-xl border-border/70 bg-background ps-9 text-sm shadow-none focus-visible:ring-2"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -324,7 +324,7 @@ export default function EmployeesPage() {
         {loading && (
           <Card size="sm" className="premium-hover">
             <CardContent className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="me-2 h-5 w-5 animate-spin" />
               {t.loading}
             </CardContent>
           </Card>
@@ -355,7 +355,7 @@ export default function EmployeesPage() {
                     onClick={openAddDialog}
                     className="mt-4 h-9 rounded-xl bg-blue-600 px-4 text-xs hover:bg-blue-700"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    <Plus className="me-1.5 h-3.5 w-3.5" />
                     {t.addEmployee}
                   </Button>
                 )}

@@ -325,10 +325,10 @@ export default function PaymentsPage() {
               </div>
 
               <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder={t.searchPlaceholder}
-                  className="h-9 rounded-xl pl-9"
+                  className="h-9 rounded-xl ps-9"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -339,7 +339,7 @@ export default function PaymentsPage() {
           <CardContent className="p-0">
             {loading && (
               <div className="flex items-center justify-center py-14 text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2 className="me-2 h-5 w-5 animate-spin" />
                 {t.loading}
               </div>
             )}
@@ -448,7 +448,7 @@ export default function PaymentsPage() {
                                   }
                                 >
                                   {collectingId === job.id && (
-                                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                    <Loader2 className="me-1.5 h-3.5 w-3.5 animate-spin" />
                                   )}
                                   {t.cash}
                                 </Button>

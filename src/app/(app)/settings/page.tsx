@@ -192,7 +192,7 @@ export default function SettingsPage() {
                       onClick={handleCopy}
                       className="shrink-0 rounded-xl"
                     >
-                      <Copy className="mr-1.5 h-3.5 w-3.5" />
+                      <Copy className="me-1.5 h-3.5 w-3.5" />
                       {copied ? t.copied : t.copy}
                     </Button>
                   </div>
