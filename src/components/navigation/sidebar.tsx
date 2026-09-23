@@ -215,8 +215,8 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
       if (userRole === "owner") {
         setPermissions(
           Object.fromEntries(
-            permissionKeys.map((key) => [key, true])
-          ) as Record<PermissionKey, boolean>
+            permissionKeys.map((key) => [key, true]),
+          ) as Record<PermissionKey, boolean>,
         )
         return
       }
@@ -237,8 +237,8 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
 
         setPermissions(
           Object.fromEntries(
-            permissionKeys.map((key) => [key, Boolean(row[key])])
-          ) as Record<PermissionKey, boolean>
+            permissionKeys.map((key) => [key, Boolean(row[key])]),
+          ) as Record<PermissionKey, boolean>,
         )
       }
     }
@@ -261,8 +261,7 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
     }))
     .filter((section) => section.items.length > 0)
     .filter(
-      (section) =>
-        section.labelKey !== "system" || role === "owner"
+      (section) => section.labelKey !== "system" || role === "owner",
     )
 
   function isActive(href: string) {
@@ -295,7 +294,7 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-9 w-9 rounded-xl"
+            className="ms-auto h-9 w-9 rounded-xl"
             onClick={onClose}
             aria-label={t.common.close}
           >
@@ -360,7 +359,7 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] border-r border-sidebar-border bg-sidebar lg:block">
+    <aside className="fixed inset-y-0 start-0 z-40 hidden w-[260px] border-e border-sidebar-border bg-sidebar lg:block">
       {content}
     </aside>
   )
