@@ -279,15 +279,13 @@ export function Sidebar({ mobile = false, onClose }: SidebarProps) {
         <Link
           href="/"
           onClick={onClose}
-          className="min-w-0"
+          className="flex min-w-0 items-center"
         >
-          <p className="truncate text-[15px] font-bold tracking-tight text-sidebar-foreground">
-            {t.branding.title}
-          </p>
-
-          <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-            {t.common.carWashManagementLower}
-          </p>
+          <img
+            src="/autovestics-logo.png"
+            alt={t.branding.title}
+            className="h-auto w-[150px] max-w-full object-contain"
+          />
         </Link>
 
         {mobile && (

@@ -113,20 +113,13 @@ export default function SignupPage() {
 
       {/* Brand panel */}
       <div className="flex w-full flex-col gap-8 border-b border-border bg-sidebar px-5 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8 lg:w-[45%] lg:justify-between lg:gap-0 lg:border-b-0 lg:border-r lg:px-16 lg:py-12">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Car className="h-5 w-5 text-primary-foreground" />
+          <div className="flex items-center">
+            <img
+              src="/autovestics-logo.png"
+              alt={t.branding.title}
+              className="h-auto w-[180px] max-w-[75vw] object-contain"
+            />
           </div>
-
-          <div>
-            <p className="text-sm font-semibold leading-none">
-              Autovestics
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t.common.carWashManagement}
-            </p>
-          </div>
-        </div>
 
         <div className="max-w-md pe-16 sm:pe-20 lg:pe-0">
           <h1 className="text-4xl font-semibold leading-tight">
