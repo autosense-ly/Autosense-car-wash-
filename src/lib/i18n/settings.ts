@@ -2,7 +2,7 @@ export const settingsTranslations = {
   en: {
     system: "System",
     title: "Settings",
-    description: "Configure AF Car Wash for how your business operates.",
+    description: "Configure Autovestics for how your business operates.",
     yourBusiness: "Your Business",
     loadingBusinessDetails: "Loading business details...",
     businessName: "Business name",
@@ -38,7 +38,7 @@ export const settingsTranslations = {
 
     configurationPhilosophy: "Configuration Philosophy",
     configurationDescription:
-      "AF Car Wash is designed to adapt to how each car wash operates. Owners should be able to decide which features managers can access, who can collect payments, what information is visible, and which services are available.",
+      "Autovestics is designed to adapt to how each car wash operates. Owners should be able to decide which features managers can access, who can collect payments, what information is visible, and which services are available.",
 
     notLoggedIn:
       "Not logged in — no active session found. Sign in first at /login.",
@@ -47,7 +47,7 @@ export const settingsTranslations = {
   ar: {
     system: "النظام",
     title: "الإعدادات",
-    description: "اضبط AF Car Wash بما يناسب طريقة عمل نشاطك التجاري.",
+    description: "اضبط Autovestics بما يناسب طريقة عمل نشاطك التجاري.",
     yourBusiness: "نشاطك التجاري",
     loadingBusinessDetails: "جارٍ تحميل تفاصيل النشاط التجاري...",
     businessName: "اسم النشاط التجاري",
@@ -83,7 +83,7 @@ export const settingsTranslations = {
 
     configurationPhilosophy: "فلسفة الإعدادات",
     configurationDescription:
-      "تم تصميم AF Car Wash ليتكيف مع طريقة عمل كل مغسلة سيارات. يجب أن يتمكن المالكون من تحديد الميزات التي يمكن للمديرين الوصول إليها، ومن يمكنه تحصيل المدفوعات، والمعلومات التي تظهر، والخدمات المتاحة.",
+      "تم تصميم Autovestics ليتكيف مع طريقة عمل كل مغسلة سيارات. يجب أن يتمكن المالكون من تحديد الميزات التي يمكن للمديرين الوصول إليها، ومن يمكنه تحصيل المدفوعات، والمعلومات التي تظهر، والخدمات المتاحة.",
 
     notLoggedIn:
       "لم يتم تسجيل الدخول — لا توجد جلسة نشطة. سجّل الدخول أولًا من /login.",

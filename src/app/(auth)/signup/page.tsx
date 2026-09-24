@@ -120,7 +120,7 @@ export default function SignupPage() {
 
           <div>
             <p className="text-sm font-semibold leading-none">
-              AF Car Wash
+              Autovestics
             </p>
             <p className="text-xs text-muted-foreground">
               {t.common.carWashManagement}

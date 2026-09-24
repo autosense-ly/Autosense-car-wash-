@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "AF Car Wash — Car Wash Management",
+  title: "Autovestics — Car Wash Management",
   description: "Job tracking, payments, and team management for car wash businesses.",
 }
 

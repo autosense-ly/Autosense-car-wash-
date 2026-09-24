@@ -166,8 +166,8 @@ export const translations = {
     },
 
     branding: {
-      title: "AF Car Wash",
-      copyright: "© 2026 AF Car Wash",
+      title: "Autovestics",
+      copyright: "© 2026 Autovestics",
     },
   },
 
@@ -338,8 +338,8 @@ export const translations = {
     },
 
     branding: {
-      title: "AF Car Wash",
-      copyright: "© 2026 AF Car Wash",
+      title: "Autovestics",
+      copyright: "© 2026 Autovestics",
     },
   },
 } as const

@@ -71,7 +71,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <p className="text-sm font-semibold leading-none">AF Car Wash</p>
+            <p className="text-sm font-semibold leading-none">Autovestics</p>
             <p className="text-xs text-muted-foreground">
               {t.auth.carWashManagementTitle}
             </p>
@@ -89,7 +89,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          © 2026 AF Car Wash
+          © 2026 Autovestics
         </p>
       </div>
 
