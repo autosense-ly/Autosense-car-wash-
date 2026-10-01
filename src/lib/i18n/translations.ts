@@ -99,6 +99,23 @@ export const translations = {
       createBusiness: "Create business",
       joinTeam: "Join team",
       alreadyHaveAccount: "Already have an account?",
+      usePhone: "Phone OTP",
+      useEmailPassword: "Email + password",
+      phoneHint: "Use your phone number with the country code, for example +218...",
+      phoneRequired: "Phone number is required.",
+      phoneCountryCodeRequired:
+        "Enter your phone number with the country code, starting with +.",
+      verificationCode: "Verification code",
+      otpSentDescription: "We sent a 6-digit code to your phone.",
+      sendCode: "Send code",
+      sendCodeAgain: "Send code again",
+      sendingCode: "Sending code...",
+      verifyingCode: "Verifying...",
+      verifyAndSignIn: "Verify & sign in",
+      verifyAndCreateAccount: "Verify & create account",
+      businessEmail: "Email for business records",
+      signupEmailRequired:
+        "Email is required for your business profile.",
     },
 
     jobs: {
@@ -271,6 +288,24 @@ export const translations = {
       createBusiness: "إنشاء النشاط التجاري",
       joinTeam: "الانضمام إلى الفريق",
       alreadyHaveAccount: "لديك حساب بالفعل؟",
+      usePhone: "رمز الهاتف",
+      useEmailPassword: "البريد وكلمة المرور",
+      phoneHint:
+        "استخدم رقم هاتفك مع رمز الدولة، مثل +218...",
+      phoneRequired: "رقم الهاتف مطلوب.",
+      phoneCountryCodeRequired:
+        "أدخل رقم الهاتف مع رمز الدولة وابدأ بعلامة +.",
+      verificationCode: "رمز التحقق",
+      otpSentDescription: "أرسلنا رمزًا مكوّنًا من 6 أرقام إلى هاتفك.",
+      sendCode: "إرسال الرمز",
+      sendCodeAgain: "إعادة إرسال الرمز",
+      sendingCode: "جارٍ إرسال الرمز...",
+      verifyingCode: "جارٍ التحقق...",
+      verifyAndSignIn: "تحقق وتسجيل الدخول",
+      verifyAndCreateAccount: "تحقق وإنشاء الحساب",
+      businessEmail: "البريد الإلكتروني لسجل النشاط",
+      signupEmailRequired:
+        "البريد الإلكتروني مطلوب لملف النشاط التجاري.",
     },
 
     jobs: {
