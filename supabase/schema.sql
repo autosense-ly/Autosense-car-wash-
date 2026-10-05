@@ -305,7 +305,66 @@ begin
 end;
 $$;
 
+create or replace function update_business_profile(
+  target_business_id uuid,
+  new_business_name text,
+  new_owner_name text
+)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  normalized_business_name text := nullif(trim(coalesce(new_business_name, '')), '');
+  normalized_owner_name text := nullif(trim(coalesce(new_owner_name, '')), '');
+  affected_rows integer;
+begin
+  if (select auth.uid()) is null then
+    raise exception using message = 'Authentication required';
+  end if;
+
+  if normalized_business_name is null then
+    raise exception using message = 'Business name is required';
+  end if;
+
+  if normalized_owner_name is null then
+    raise exception using message = 'Owner name is required';
+  end if;
+
+  update public.businesses
+  set name = normalized_business_name
+  where id = target_business_id
+    and owner_id = (select auth.uid());
+
+  get diagnostics affected_rows = row_count;
+
+  if affected_rows <> 1 then
+    raise exception using message = 'Business not found or not authorized';
+  end if;
+
+  update public.app_users
+  set name = normalized_owner_name
+  where id = (select auth.uid())
+    and business_id = target_business_id
+    and role = 'owner';
+
+  get diagnostics affected_rows = row_count;
+
+  if affected_rows <> 1 then
+    raise exception using message = 'Owner profile not found';
+  end if;
+end;
+$$;
+
+revoke execute on function update_business_profile(uuid, text, text) from public;
+revoke execute on function update_business_profile(uuid, text, text) from anon;
+grant execute on function update_business_profile(uuid, text, text) to authenticated;
+
 create policy "businesses_select" on businesses for select using (id = auth_business_id());
+create policy "businesses_update_owner" on businesses for update
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
 create policy "app_users_select" on app_users for select using (business_id = auth_business_id());
 create policy "workers_select" on workers for select using (business_id = auth_business_id());
 create policy "customers_select" on customers for select using (business_id = auth_business_id());

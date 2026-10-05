@@ -9,6 +9,7 @@ import {
   Copy,
   CreditCard,
   LockKeyhole,
+  Save,
   Settings2,
   Users,
   Wrench,
@@ -16,6 +17,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useLanguage } from "@/lib/i18n/language-provider"
 import { settingsTranslations } from "@/lib/i18n/settings"
 import { createClient } from "@/lib/supabase/client"
@@ -67,49 +69,132 @@ export default function SettingsPage() {
   const [business, setBusiness] = useState<{
     id: string
     name: string
+    owner_id: string
   } | null>(null)
-
+  const [ownerName, setOwnerName] = useState("")
+  const [businessName, setBusinessName] = useState("")
+  const [isOwner, setIsOwner] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    async function loadBusinessDetails() {
+      setLoading(true)
+      setError(null)
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (!user) {
         setError(t.notLoggedIn)
         setLoading(false)
         return
       }
 
-      supabase
+      const { data: businessData, error: businessError } = await supabase
         .from("businesses")
-        .select("id, name")
+        .select("id, name, owner_id")
         .single()
-        .then(({ data, error }) => {
-          setLoading(false)
 
-          if (data) {
-            setBusiness(data)
-          }
+      if (businessError || !businessData) {
+        setError(businessError?.message ?? t.businessDetailsError)
+        setLoading(false)
+        return
+      }
 
-          if (error) {
-            setError(error.message)
-          }
-        })
-    })
+      const owner = businessData.owner_id === user.id
+      setBusiness(businessData)
+      setBusinessName(businessData.name)
+      setIsOwner(owner)
+
+      const { data: ownerData, error: ownerError } = await supabase
+        .from("app_users")
+        .select("name")
+        .eq("id", businessData.owner_id)
+        .eq("business_id", businessData.id)
+        .eq("role", "owner")
+        .single()
+
+      if (ownerError || !ownerData) {
+        setError(ownerError?.message ?? t.ownerDetailsError)
+        setLoading(false)
+        return
+      }
+
+      setOwnerName(ownerData.name)
+      setLoading(false)
+    }
+
+    void loadBusinessDetails()
   }, [language, t])
 
   function handleCopy() {
     if (!business) return
 
-    navigator.clipboard.writeText(business.id)
+    void navigator.clipboard.writeText(business.id)
     setCopied(true)
 
     setTimeout(() => {
       setCopied(false)
     }, 2000)
+  }
+
+  async function handleSave() {
+    if (!business || !isOwner || saving) return
+
+    const trimmedBusinessName = businessName.trim()
+    const trimmedOwnerName = ownerName.trim()
+
+    if (!trimmedBusinessName) {
+      setSaveMessage(t.businessNameRequired)
+      return
+    }
+
+    if (!trimmedOwnerName) {
+      setSaveMessage(t.ownerNameRequired)
+      return
+    }
+
+    setSaving(true)
+    setSaveMessage(null)
+    setError(null)
+
+    const supabase = createClient()
+
+    const { error: saveError } = await supabase.rpc(
+      "update_business_profile",
+      {
+        target_business_id: business.id,
+        new_business_name: trimmedBusinessName,
+        new_owner_name: trimmedOwnerName,
+      },
+    )
+
+    setSaving(false)
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setBusiness((current) =>
+      current ? { ...current, name: trimmedBusinessName } : current,
+    )
+    setBusinessName(trimmedBusinessName)
+    setOwnerName(trimmedOwnerName)
+    setSaveMessage(t.saved)
+  }
+
+  function scrollToBusinessProfile() {
+    document
+      .getElementById("business-profile")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   return (
@@ -125,11 +210,9 @@ export default function SettingsPage() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-600 dark:text-blue-400">
                 {t.system}
               </p>
-
               <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-[28px]">
                 {t.title}
               </h1>
-
               <p className="mt-1 text-sm text-muted-foreground">
                 {t.description}
               </p>
@@ -137,7 +220,10 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <Card className="rounded-2xl border-2 border-border bg-card shadow-md">
+        <Card
+          id="business-profile"
+          className="scroll-mt-6 rounded-2xl border-2 border-border bg-card shadow-md"
+        >
           <CardHeader className="border-b border-border/60 px-5 py-4">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -159,16 +245,42 @@ export default function SettingsPage() {
               </p>
             )}
 
-            {business && (
+            {business && !loading && (
               <>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                    {t.businessName}
-                  </p>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="business-name"
+                      className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+                    >
+                      {t.businessName}
+                    </label>
 
-                  <p className="mt-1.5 font-semibold">
-                    {business.name}
-                  </p>
+                    <Input
+                      id="business-name"
+                      value={businessName}
+                      onChange={(event) => setBusinessName(event.target.value)}
+                      disabled={!isOwner || saving}
+                      className="mt-2 rounded-xl"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="owner-name"
+                      className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+                    >
+                      {t.ownerName}
+                    </label>
+
+                    <Input
+                      id="owner-name"
+                      value={ownerName}
+                      onChange={(event) => setOwnerName(event.target.value)}
+                      disabled={!isOwner || saving}
+                      className="mt-2 rounded-xl"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -197,6 +309,32 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
+
+                {isOwner && (
+                  <div className="flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <p
+                      className={`text-sm ${
+                        saveMessage
+                          ? saveMessage === t.saved
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-destructive"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {saveMessage ?? t.ownerOnlyEdit}
+                    </p>
+
+                    <Button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="rounded-xl"
+                    >
+                      <Save className="me-2 h-4 w-4" />
+                      {saving ? t.saving : t.saveChanges}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
@@ -205,7 +343,6 @@ export default function SettingsPage() {
         <div className="space-y-3">
           {sectionKeys.map((section) => {
             const Icon = section.icon
-
             const title = t[section.key]
             const description = t[`${section.key}Description`]
 
@@ -216,9 +353,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">
-                    {title}
-                  </p>
+                  <p className="font-semibold">{title}</p>
 
                   <p className="mt-1 text-sm leading-5 text-muted-foreground">
                     {description}
@@ -240,6 +375,21 @@ export default function SettingsPage() {
                     {content}
                   </Card>
                 </Link>
+              )
+            }
+
+            if (section.key === "business") {
+              return (
+                <button
+                  key={section.key}
+                  type="button"
+                  onClick={scrollToBusinessProfile}
+                  className="group block w-full text-start"
+                >
+                  <Card className="rounded-2xl border-2 border-border bg-card text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md dark:hover:border-blue-900/70">
+                    {content}
+                  </Card>
+                </button>
               )
             }
 
