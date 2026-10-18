@@ -23,6 +23,7 @@ export default function SignupPage() {
 
   const [businessName, setBusinessName] = useState('')
   const [ownerName, setOwnerName] = useState('')
+  const [country, setCountry] = useState('Libya')
 
   const [businessId, setBusinessId] = useState('')
   const [managerName, setManagerName] = useState('')
@@ -42,9 +43,9 @@ export default function SignupPage() {
   ) {
     const { error: rpcError } =
       mode === 'owner'
-        ? await supabase.rpc('create_owner_profile', {
+        ? await supabase.rpc('create_owner_profile_for_country', {
             business_name: businessName,
-            business_currency: 'LYD',
+            business_country: country,
             owner_name: ownerName,
             owner_email: email,
           })
@@ -68,6 +69,12 @@ export default function SignupPage() {
   async function handleEmailSignup(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (mode === 'owner' && country !== 'Libya' && country !== 'Pakistan') {
+      setError('Wrong country. Only Libya and Pakistan are supported.')
+      return
+    }
+
     setLoading(true)
 
     const supabase = createClient()
@@ -171,132 +178,145 @@ export default function SignupPage() {
               : t.auth.joinBusinessDescription}
           </p>
 
-            <form
-              onSubmit={handleEmailSignup}
-              className="mt-6 space-y-4"
+          <form
+            onSubmit={handleEmailSignup}
+            className="mt-6 space-y-4"
+          >
+            {mode === 'owner' ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email-businessName">
+                    {t.common.businessName}
+                  </Label>
+
+                  <Input
+                    id="email-businessName"
+                    required
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email-ownerName">
+                    {t.auth.yourName}
+                  </Label>
+
+                  <Input
+                    id="email-ownerName"
+                    required
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">
+                    {language === 'ar' ? 'الدولة' : 'Country'}
+                  </Label>
+
+                  <select
+                    id="country"
+                    required
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="Libya">
+                      {language === 'ar' ? 'ليبيا' : 'Libya'}
+                    </option>
+                    <option value="Pakistan">
+                      {language === 'ar' ? 'باكستان' : 'Pakistan'}
+                    </option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email-businessId">
+                    {t.common.businessId}
+                  </Label>
+
+                  <Input
+                    id="email-businessId"
+                    required
+                    placeholder="e.g. 3f2a1b4c-..."
+                    value={businessId}
+                    onChange={(e) => setBusinessId(e.target.value)}
+                    className="bg-card"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email-managerName">
+                    {t.auth.yourName}
+                  </Label>
+
+                  <Input
+                    id="email-managerName"
+                    required
+                    value={managerName}
+                    onChange={(e) => setManagerName(e.target.value)}
+                    className="bg-card"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                {t.common.email}
+              </Label>
+
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-card"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">
+                {t.common.password}
+              </Label>
+
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-card"
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full"
             >
-              {mode === 'owner' ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="email-businessName">
-                      {t.common.businessName}
-                    </Label>
-
-                    <Input
-                      id="email-businessName"
-                      required
-                      value={businessName}
-                      onChange={(e) =>
-                        setBusinessName(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email-ownerName">
-                      {t.auth.yourName}
-                    </Label>
-
-                    <Input
-                      id="email-ownerName"
-                      required
-                      value={ownerName}
-                      onChange={(e) =>
-                        setOwnerName(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="email-businessId">
-                      {t.common.businessId}
-                    </Label>
-
-                    <Input
-                      id="email-businessId"
-                      required
-                      placeholder="e.g. 3f2a1b4c-..."
-                      value={businessId}
-                      onChange={(e) =>
-                        setBusinessId(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email-managerName">
-                      {t.auth.yourName}
-                    </Label>
-
-                    <Input
-                      id="email-managerName"
-                      required
-                      value={managerName}
-                      onChange={(e) =>
-                        setManagerName(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">
-                  {t.common.email}
-                </Label>
-
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-card"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">
-                  {t.common.password}
-                </Label>
-
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-card"
-                />
-              </div>
-
-              {error && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {error}
-                </p>
-              )}
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full"
-              >
-                {loading
-                  ? t.auth.pleaseWait
-                  : mode === 'owner'
-                    ? t.auth.createBusiness
-                    : t.auth.joinTeam}
-              </Button>
-            </form>
+              {loading
+                ? t.auth.pleaseWait
+                : mode === 'owner'
+                  ? t.auth.createBusiness
+                  : t.auth.joinTeam}
+            </Button>
+          </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {t.auth.alreadyHaveAccount}{' '}
