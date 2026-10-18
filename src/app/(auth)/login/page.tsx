@@ -9,13 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLanguage } from '@/lib/i18n/language-provider'
 
-type LoginMethod = 'phone' | 'email'
 
 export default function LoginPage() {
-  const [method, setMethod] = useState<LoginMethod>('phone')
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -24,73 +19,6 @@ export default function LoginPage() {
 
   function toggleLanguage() {
     setLanguage(language === 'en' ? 'ar' : 'en')
-  }
-
-  function switchMethod(nextMethod: LoginMethod) {
-    setMethod(nextMethod)
-    setError(null)
-    setOtpSent(false)
-    setOtp('')
-  }
-
-  async function sendPhoneOtp() {
-    setError(null)
-    setLoading(true)
-
-    const normalizedPhone = phone.trim()
-
-    if (!normalizedPhone) {
-      setLoading(false)
-      setError(t.auth.phoneRequired)
-      return
-    }
-
-    if (!normalizedPhone.startsWith('+')) {
-      setLoading(false)
-      setError(t.auth.phoneCountryCodeRequired)
-      return
-    }
-
-    const supabase = createClient()
-
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: normalizedPhone,
-      options: {
-        shouldCreateUser: false,
-      },
-    })
-
-    setLoading(false)
-
-    if (error) {
-      setError(error.message)
-      return
-    }
-
-    setPhone(normalizedPhone)
-    setOtpSent(true)
-  }
-
-  async function verifyPhoneOtp(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    const supabase = createClient()
-
-    const { error } = await supabase.auth.verifyOtp({
-      phone: phone.trim(),
-      token: otp.trim(),
-      type: 'sms',
-    })
-
-    if (error) {
-      setLoading(false)
-      setError(error.message)
-      return
-    }
-
-    window.location.assign('/')
   }
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -171,128 +99,6 @@ export default function LoginPage() {
             {t.auth.signInToBusiness}
           </p>
 
-          <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
-            <Button
-              type="button"
-              variant={method === 'phone' ? 'default' : 'ghost'}
-              onClick={() => switchMethod('phone')}
-              className="rounded-lg"
-            >
-              {t.auth.usePhone}
-            </Button>
-
-            <Button
-              type="button"
-              variant={method === 'email' ? 'default' : 'ghost'}
-              onClick={() => switchMethod('email')}
-              className="rounded-lg"
-            >
-              {t.auth.useEmailPassword}
-            </Button>
-          </div>
-
-          {method === 'phone' ? (
-            <form
-              onSubmit={verifyPhoneOtp}
-              className="mt-8 space-y-5"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t.common.phone}</Label>
-
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  required
-                  placeholder="+218..."
-                  value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value)
-                    setOtpSent(false)
-                    setOtp('')
-                  }}
-                  className="bg-card"
-                />
-
-                <p className="text-xs text-muted-foreground">
-                  {t.auth.phoneHint}
-                </p>
-              </div>
-
-              {otpSent && (
-                <div className="space-y-2">
-                  <Label htmlFor="otp">
-                    {t.auth.verificationCode}
-                  </Label>
-
-                  <Input
-                    id="otp"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                    maxLength={6}
-                    placeholder="123456"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(
-                        e.target.value
-                          .replace(/\D/g, '')
-                          .slice(0, 6)
-                      )
-                    }
-                    className="bg-card tracking-[0.35em]"
-                  />
-
-                  <p className="text-xs text-muted-foreground">
-                    {t.auth.otpSentDescription}
-                  </p>
-                </div>
-              )}
-
-              {error && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {error}
-                </p>
-              )}
-
-              {!otpSent ? (
-                <Button
-                  type="button"
-                  disabled={loading}
-                  onClick={sendPhoneOtp}
-                  className="w-full"
-                >
-                  {loading
-                    ? t.auth.sendingCode
-                    : t.auth.sendCode}
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full"
-                  >
-                    {loading
-                      ? t.auth.verifyingCode
-                      : t.auth.verifyAndSignIn}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={loading}
-                    onClick={sendPhoneOtp}
-                    className="w-full"
-                  >
-                    {t.auth.sendCodeAgain}
-                  </Button>
-                </div>
-              )}
-            </form>
-          ) : (
             <form
               onSubmit={handleEmailLogin}
               className="mt-8 space-y-5"
@@ -341,7 +147,6 @@ export default function LoginPage() {
                 {loading ? t.auth.signingIn : t.auth.signIn}
               </Button>
             </form>
-          )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {t.auth.noBusinessAccount}{' '}

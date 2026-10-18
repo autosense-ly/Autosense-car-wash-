@@ -12,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLanguage } from '@/lib/i18n/language-provider'
 import { signupTranslations } from '@/lib/i18n/signup'
 
-type SignupMethod = 'phone' | 'email'
 type SignupMode = 'owner' | 'manager'
 
 export default function SignupPage() {
@@ -21,7 +20,6 @@ export default function SignupPage() {
   const signupT = signupTranslations[language]
 
   const [mode, setMode] = useState<SignupMode>('owner')
-  const [method, setMethod] = useState<SignupMethod>('phone')
 
   const [businessName, setBusinessName] = useState('')
   const [ownerName, setOwnerName] = useState('')
@@ -29,9 +27,6 @@ export default function SignupPage() {
   const [businessId, setBusinessId] = useState('')
   const [managerName, setManagerName] = useState('')
 
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -40,13 +35,6 @@ export default function SignupPage() {
 
   function toggleLanguage() {
     setLanguage(language === 'en' ? 'ar' : 'en')
-  }
-
-  function switchMethod(nextMethod: SignupMethod) {
-    setMethod(nextMethod)
-    setError(null)
-    setOtpSent(false)
-    setOtp('')
   }
 
   async function finishProfileCreation(
@@ -75,81 +63,6 @@ export default function SignupPage() {
     router.push('/')
     router.refresh()
     return true
-  }
-
-  async function sendPhoneOtp() {
-    setError(null)
-    setLoading(true)
-
-    const normalizedPhone = phone.trim()
-
-    if (!normalizedPhone) {
-      setLoading(false)
-      setError(t.auth.phoneRequired)
-      return
-    }
-
-    if (!normalizedPhone.startsWith('+')) {
-      setLoading(false)
-      setError(t.auth.phoneCountryCodeRequired)
-      return
-    }
-
-    if (!email.trim()) {
-      setLoading(false)
-      setError(t.auth.signupEmailRequired)
-      return
-    }
-
-    const supabase = createClient()
-
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: normalizedPhone,
-      options: {
-        shouldCreateUser: true,
-      },
-    })
-
-    setLoading(false)
-
-    if (error) {
-      setError(error.message)
-      return
-    }
-
-    setPhone(normalizedPhone)
-    setOtpSent(true)
-  }
-
-  async function verifyPhoneOtp(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    const supabase = createClient()
-
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.verifyOtp({
-      phone: phone.trim(),
-      token: otp.trim(),
-      type: 'sms',
-    })
-
-    if (error) {
-      setLoading(false)
-      setError(error.message)
-      return
-    }
-
-    if (!session) {
-      setLoading(false)
-      setError(signupT.noSession)
-      return
-    }
-
-    await finishProfileCreation(supabase)
   }
 
   async function handleEmailSignup(e: React.FormEvent) {
@@ -258,215 +171,6 @@ export default function SignupPage() {
               : t.auth.joinBusinessDescription}
           </p>
 
-          <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
-            <Button
-              type="button"
-              variant={method === 'phone' ? 'default' : 'ghost'}
-              onClick={() => switchMethod('phone')}
-              className="rounded-lg"
-            >
-              {t.auth.usePhone}
-            </Button>
-
-            <Button
-              type="button"
-              variant={method === 'email' ? 'default' : 'ghost'}
-              onClick={() => switchMethod('email')}
-              className="rounded-lg"
-            >
-              {t.auth.useEmailPassword}
-            </Button>
-          </div>
-
-          {method === 'phone' ? (
-            <form
-              onSubmit={verifyPhoneOtp}
-              className="mt-6 space-y-4"
-            >
-              {mode === 'owner' ? (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName">
-                      {t.common.businessName}
-                    </Label>
-
-                    <Input
-                      id="businessName"
-                      required
-                      value={businessName}
-                      onChange={(e) =>
-                        setBusinessName(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ownerName">
-                      {t.auth.yourName}
-                    </Label>
-
-                    <Input
-                      id="ownerName"
-                      required
-                      value={ownerName}
-                      onChange={(e) =>
-                        setOwnerName(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="businessId">
-                      {t.common.businessId}
-                    </Label>
-
-                    <Input
-                      id="businessId"
-                      required
-                      placeholder="e.g. 3f2a1b4c-..."
-                      value={businessId}
-                      onChange={(e) =>
-                        setBusinessId(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="managerName">
-                      {t.auth.yourName}
-                    </Label>
-
-                    <Input
-                      id="managerName"
-                      required
-                      value={managerName}
-                      onChange={(e) =>
-                        setManagerName(e.target.value)
-                      }
-                      className="bg-card"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t.common.phone}</Label>
-
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  required
-                  placeholder="+218..."
-                  value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value)
-                    setOtpSent(false)
-                    setOtp('')
-                  }}
-                  className="bg-card"
-                />
-
-                <p className="text-xs text-muted-foreground">
-                  {t.auth.phoneHint}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">
-                  {t.auth.businessEmail}
-                </Label>
-
-                <Input
-                  id="signup-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-card"
-                />
-              </div>
-
-              {otpSent && (
-                <div className="space-y-2">
-                  <Label htmlFor="signup-otp">
-                    {t.auth.verificationCode}
-                  </Label>
-
-                  <Input
-                    id="signup-otp"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                    maxLength={6}
-                    placeholder="123456"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(
-                        e.target.value
-                          .replace(/\D/g, '')
-                          .slice(0, 6)
-                      )
-                    }
-                    className="bg-card tracking-[0.35em]"
-                  />
-
-                  <p className="text-xs text-muted-foreground">
-                    {t.auth.otpSentDescription}
-                  </p>
-                </div>
-              )}
-
-              {error && (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {error}
-                </p>
-              )}
-
-              {!otpSent ? (
-                <Button
-                  type="button"
-                  disabled={loading}
-                  onClick={sendPhoneOtp}
-                  className="w-full"
-                >
-                  {loading
-                    ? t.auth.sendingCode
-                    : t.auth.sendCode}
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full"
-                  >
-                    {loading
-                      ? t.auth.verifyingCode
-                      : t.auth.verifyAndCreateAccount}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={loading}
-                    onClick={sendPhoneOtp}
-                    className="w-full"
-                  >
-                    {t.auth.sendCodeAgain}
-                  </Button>
-                </div>
-              )}
-            </form>
-          ) : (
             <form
               onSubmit={handleEmailSignup}
               className="mt-6 space-y-4"
@@ -593,7 +297,6 @@ export default function SignupPage() {
                     : t.auth.joinTeam}
               </Button>
             </form>
-          )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {t.auth.alreadyHaveAccount}{' '}
