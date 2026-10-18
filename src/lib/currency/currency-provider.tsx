@@ -13,12 +13,14 @@ export type BusinessCurrency = "LYD" | "PKR"
 
 type CurrencyContextValue = {
   currency: BusinessCurrency
+  loading: boolean
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null)
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState<BusinessCurrency>("LYD")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -49,8 +51,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         if (business.currency === "LYD" || business.currency === "PKR") {
           setCurrency(business.currency)
         }
-      } catch {
-        // Keep the existing LYD default if the business currency cannot be loaded.
+      } finally {
+        if (active) setLoading(false)
       }
     }
 
@@ -62,7 +64,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <CurrencyContext.Provider value={{ currency }}>
+    <CurrencyContext.Provider value={{ currency, loading }}>
       {children}
     </CurrencyContext.Provider>
   )
