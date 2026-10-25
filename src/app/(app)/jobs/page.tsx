@@ -5,7 +5,6 @@ import Link from "next/link"
 import {
   CarFront,
   Loader2,
-  MoreHorizontal,
   Plus,
   Search,
   UserRound,
@@ -16,8 +15,6 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { createClient } from "@/lib/supabase/client"
@@ -110,8 +107,6 @@ export default function JobsPage() {
   const [payments, setPayments] = useState<PaymentRow[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
-
-  const isArabic = language === "ar"
 
   const formatStatus = (status: JobStatus) => {
     const labels = jobDetailsTranslations[language]
@@ -240,7 +235,7 @@ export default function JobsPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-      <div className="space-y-6">
+      <div className="space-y-5">
         <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-blue-600 dark:text-blue-400">
@@ -262,218 +257,184 @@ export default function JobsPage() {
           </Link>
         </section>
 
-        <Card className="rounded-2xl border-2 border-border bg-card shadow-md">
-          <CardHeader className="flex flex-col gap-4 border-b border-border/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div>
-              <CardTitle className="text-base font-semibold">
-                {t.jobs.allJobs}
-              </CardTitle>
-              {!loading && (
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {filteredJobs.length}{" "}
-                  {filteredJobs.length === 1
-                    ? t.jobs.jobSingular
-                    : t.jobs.jobPlural}
-                  {search ? ` ${t.jobs.found}` : ""}
-                </p>
-              )}
-            </div>
-
-            <div className="relative w-full sm:w-80">
-              <Search
-                className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground ${
-                  isArabic ? "right-3" : "left-3"
-                }`}
-              />
-              <Input
-                placeholder={t.jobs.searchJobs}
-                className={`h-10 rounded-xl border-border/80 bg-background ${
-                  isArabic ? "pr-9" : "pl-9"
-                }`}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
-                <Loader2
-                  className={`h-5 w-5 animate-spin ${
-                    isArabic ? "ml-2" : "mr-2"
-                  }`}
-                />
-                {t.jobs.loadingJobs}
-              </div>
-            ) : filteredJobs.length === 0 ? (
-              <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                  <CarFront className="h-6 w-6" />
-                </div>
-
-                <p className="mt-4 font-semibold">
-                  {search ? t.jobs.noMatchingJobs : t.jobs.noJobsYet}
-                </p>
-
-                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  {search
-                    ? t.jobs.tryDifferentSearch
-                    : t.jobs.createFirstJob}
-                </p>
-
-                {!search && (
-                  <Link href="/jobs/new">
-                    <Button className="mt-4 rounded-xl bg-blue-600 hover:bg-blue-700">
-                      <Plus
-                        className={`h-4 w-4 ${
-                          isArabic ? "ml-2" : "mr-2"
-                        }`}
-                      />
-                      {t.jobs.createJob}
-                    </Button>
-                  </Link>
+        <Card size="sm" className="premium-hover">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">{t.jobs.allJobs}</p>
+                {!loading && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {filteredJobs.length}{" "}
+                    {filteredJobs.length === 1
+                      ? t.jobs.jobSingular
+                      : t.jobs.jobPlural}
+                    {search ? ` ${t.jobs.found}` : ""}
+                  </p>
                 )}
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border/60 bg-muted/30 text-start text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                      <th className="px-5 py-3.5">{t.common.job}</th>
-                      <th className="px-4 py-3.5">{t.common.customer}</th>
-                      <th className="px-4 py-3.5">{t.common.vehicle}</th>
-                      <th className="px-4 py-3.5">{t.common.service}</th>
-                      <th className="px-4 py-3.5">{t.common.total}</th>
-                      <th className="px-4 py-3.5">{t.common.status}</th>
-                      <th className="px-4 py-3.5 text-end"></th>
-                    </tr>
-                  </thead>
 
-                  <tbody className="divide-y divide-border/50">
-                    {filteredJobs.map((job) => {
-                      const total = toNumber(job.total)
-                      const paid = paymentTotals.get(job.id) ?? 0
-                      const paymentStatus = getPaymentStatus(
-                        total,
-                        paid,
-                      )
-
-                      return (
-                        <tr
-                          key={job.id}
-                          className="group transition-colors hover:bg-muted/30"
-                        >
-                          <td className="px-5 py-4 align-middle">
-                            <Link
-                              href={`/jobs/${job.id}`}
-                              className="inline-flex items-center rounded-lg font-semibold text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                              #{job.id.slice(0, 8)}
-                            </Link>
-                          </td>
-
-                          <td className="px-4 py-4 align-middle">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                                <UserRound className="h-4 w-4" />
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="truncate font-medium">
-                                  {job.customer_name ||
-                                    t.jobs.walkIn}
-                                </p>
-                                {job.customer_phone && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {job.customer_phone}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 align-middle">
-                            <Link
-                              href={`/jobs/${job.id}`}
-                              className="block rounded-lg transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-                            >
-                              <p className="font-medium">
-                                {job.car_model ||
-                                  t.jobs.unnamedVehicle}
-                              </p>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {job.plate_number ||
-                                  t.jobs.noPlate}
-                              </p>
-                            </Link>
-                          </td>
-
-                          <td className="px-4 py-4 align-middle">
-                            <p className="max-w-[190px] truncate text-muted-foreground">
-                              {job.job_services?.length === 1
-                                ? job.job_services[0].service_name
-                                : job.job_services?.length
-                                  ? `${job.job_services[0].service_name} + ${
-                                      job.job_services.length - 1
-                                    } ${t.jobs.more}`
-                                  : t.jobs.noService}
-                            </p>
-                          </td>
-
-                          <td className="px-4 py-4 align-middle">
-                            <p className="font-semibold">
-                              {total.toFixed(2)} LYD
-                            </p>
-
-                            <Badge
-                              variant="outline"
-                              className={`mt-1.5 rounded-lg text-[10px] font-semibold ${getPaymentClass(
-                                paymentStatus,
-                              )}`}
-                            >
-                              {paymentStatus === "paid"
-                                ? t.jobs.paid
-                                : paymentStatus === "partial"
-                                  ? `${paid.toFixed(2)} ${t.jobs.paid.toLowerCase()}`
-                                  : t.jobs.unpaid}
-                            </Badge>
-                          </td>
-
-                          <td className="px-4 py-4 align-middle">
-                            <Badge
-                              variant="outline"
-                              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold ${getStatusClass(
-                                job.status,
-                              )}`}
-                            >
-                              {formatStatus(job.status)}
-                            </Badge>
-                          </td>
-
-                          <td className="px-4 py-4 text-end align-middle">
-                            <Link href={`/jobs/${job.id}`}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 rounded-lg text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">
-                                  {t.jobs.openJob}
-                                </span>
-                              </Button>
-                            </Link>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="relative w-full max-w-xl sm:w-80">
+                <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t.jobs.searchJobs}
+                  className="h-10 rounded-xl border-border/70 bg-background ps-9 text-sm shadow-none focus-visible:ring-2"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
+
+        {loading && (
+          <Card size="sm" className="premium-hover">
+            <CardContent className="flex min-h-[180px] items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="me-2 h-5 w-5 animate-spin" />
+              {t.jobs.loadingJobs}
+            </CardContent>
+          </Card>
+        )}
+
+        {!loading && (
+          <div className="space-y-3">
+            {filteredJobs.length === 0 ? (
+              <Card size="sm" className="premium-hover">
+                <CardContent className="flex min-h-[180px] flex-col items-center justify-center px-4 py-10 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                    <CarFront className="h-6 w-6" />
+                  </div>
+
+                  <p className="mt-4 font-semibold">
+                    {search ? t.jobs.noMatchingJobs : t.jobs.noJobsYet}
+                  </p>
+
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    {search
+                      ? t.jobs.tryDifferentSearch
+                      : t.jobs.createFirstJob}
+                  </p>
+
+                  {!search && (
+                    <Link href="/jobs/new">
+                      <Button className="mt-4 rounded-xl bg-blue-600 hover:bg-blue-700">
+                        <Plus className="me-2 h-4 w-4" />
+                        {t.jobs.createJob}
+                      </Button>
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              filteredJobs.map((job) => {
+                const total = toNumber(job.total)
+                const paid = paymentTotals.get(job.id) ?? 0
+                const paymentStatus = getPaymentStatus(total, paid)
+
+                return (
+                  <Card
+                    key={job.id}
+                    size="sm"
+                    className="premium-hover"
+                  >
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="flex min-w-0 items-center gap-3.5 xl:w-[280px] xl:shrink-0"
+                        >
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                            <CarFront className="h-5 w-5" />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <p className="truncate text-[13px] font-semibold sm:text-sm">
+                                {job.car_model || t.jobs.unnamedVehicle}
+                              </p>
+                              <span className="hidden shrink-0 text-[10px] text-muted-foreground sm:inline">
+                                #{job.id.slice(0, 8)}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 truncate text-[11px] text-muted-foreground sm:text-xs">
+                              {job.plate_number || t.jobs.noPlate}
+                            </p>
+                          </div>
+                        </Link>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold">
+                            {job.job_services?.length === 1
+                              ? job.job_services[0].service_name
+                              : job.job_services?.length
+                                ? `${job.job_services[0].service_name} + ${
+                                    job.job_services.length - 1
+                                  } ${t.jobs.more}`
+                                : t.jobs.noService}
+                          </p>
+
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground sm:text-xs">
+                            <span className="flex min-w-0 items-center gap-1">
+                              <UserRound className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">
+                                {job.customer_name || t.jobs.walkIn}
+                              </span>
+                            </span>
+
+                            {job.customer_phone && (
+                              <span className="truncate">
+                                {job.customer_phone}
+                              </span>
+                            )}
+
+                            <span className="font-medium text-foreground/80">
+                              {total.toFixed(2)} LYD
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={`w-fit rounded-full border-0 px-2.5 py-1 text-[10px] font-medium ${getStatusClass(
+                              job.status,
+                            )}`}
+                          >
+                            {formatStatus(job.status)}
+                          </Badge>
+
+                          <Badge
+                            variant="outline"
+                            className={`w-fit rounded-full px-2.5 py-1 text-[10px] font-medium ${getPaymentClass(
+                              paymentStatus,
+                            )}`}
+                          >
+                            {paymentStatus === "paid"
+                              ? t.jobs.paid
+                              : paymentStatus === "partial"
+                                ? `${paid.toFixed(2)} ${t.jobs.paid.toLowerCase()}`
+                                : t.jobs.unpaid}
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 xl:shrink-0">
+                          <Link href={`/jobs/${job.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 rounded-xl px-3 text-xs"
+                            >
+                              {t.jobs.openJob}
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
