@@ -32,6 +32,7 @@ export type PaymentsTranslations = {
     notLoggedIn: string
     businessNotFound: string
     recordPayment: string
+    noPaymentDue: string
   }
   success: {
     markedPaid: string
@@ -73,6 +74,7 @@ export const paymentsTranslations: Record<"en" | "ar", PaymentsTranslations> = {
       notLoggedIn: "Not logged in",
       businessNotFound: "Couldn't find your business",
       recordPayment: "Couldn't record payment",
+      noPaymentDue: "No payment is due",
     },
     success: {
       markedPaid: "Marked as paid via",
@@ -113,6 +115,7 @@ export const paymentsTranslations: Record<"en" | "ar", PaymentsTranslations> = {
       notLoggedIn: "لم يتم تسجيل الدخول",
       businessNotFound: "تعذر العثور على نشاطك التجاري",
       recordPayment: "تعذر تسجيل الدفعة",
+      noPaymentDue: "لا توجد دفعة مستحقة",
     },
     success: {
       markedPaid: "تم تحديد الدفع كمدفوع عبر",

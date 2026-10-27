@@ -211,6 +211,12 @@ export default function PaymentsPage() {
 
     const remaining = toNumber(job.total) - paidAmountFor(job.id)
 
+    if (remaining <= 0) {
+      toast.error(t.errors.noPaymentDue)
+      setCollectingId(null)
+      return
+    }
+
     const { error } = await supabase.from("payments").insert({
       business_id: profile.business_id,
       job_id: job.id,
